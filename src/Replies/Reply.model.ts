@@ -1,20 +1,19 @@
 import {
-  Table,
+  BelongsTo,
   Column,
-  Unique,
-  PrimaryKey,
   CreatedAt,
   ForeignKey,
-  BelongsTo,
+  Model,
+  PrimaryKey,
+  Table,
+  Unique,
 } from 'sequelize-typescript';
 
-import CommentParent from '../Comments/CommentParent.model';
 import User from '../Users/User.model';
-
-// export interface 
+import ReplyParent from './ReplyParent.model';
 
 @Table
-export default class Discussion extends CommentParent<Discussion> {
+export default class Reply<T> extends Model {
   @Unique
   @PrimaryKey
   @Column
@@ -28,15 +27,16 @@ export default class Discussion extends CommentParent<Discussion> {
   user: User;
 
   @Column
-  title: string;
-
-  @Column
-  type: '' | 'Request' | 'Question' | 'Announcement';
+  content: string;
 
   @CreatedAt
   @Column
   timestamp: Date;
 
   @Column
-  shouldNotify: boolean;
+  @ForeignKey(() => ReplyParent)
+  parentID: number;
+
+  @BelongsTo(() => ReplyParent)
+  parent: ReplyParent<T>;
 }

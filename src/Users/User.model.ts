@@ -1,19 +1,28 @@
-import { Column, HasMany, Model, Unique } from 'sequelize-typescript';
+import {
+  Column,
+  HasMany,
+  Model,
+  PrimaryKey,
+  Table,
+  Unique,
+} from 'sequelize-typescript';
 
-import { Discussion } from '../Discussions/Discussion.model';
-import { DiscussionComment } from '../Discussions/DiscussionComment.model';
+import Discussion from '../Discussions/Discussion.model';
+import Comment from '../Comments/Comment.model';
 
-export class User extends Model {
+@Table
+export default class User extends Model {
   @Unique
+  @PrimaryKey
   @Column
-  ID: number;
+  id!: number;
 
   @Column
-  Username: string;
+  username!: string;
 
   @HasMany(() => Discussion)
-  Discussions: Discussion[];
+  discussions: Discussion[];
 
-  @HasMany(() => DiscussionComment)
-  DiscussionComments: DiscussionComment[];
+  @HasMany(() => Comment)
+  discussionComments: Comment<Discussion>[];
 }
