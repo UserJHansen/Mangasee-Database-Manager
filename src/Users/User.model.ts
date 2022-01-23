@@ -16,6 +16,7 @@ export type User = {
 };
 @Table
 export default class UserModel extends Model<User> implements User {
+  @PrimaryKey
   @Unique
   @PrimaryKey
   @Column

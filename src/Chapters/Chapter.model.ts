@@ -15,7 +15,7 @@ import Manga from '../Mangas/Manga.model';
 import Page from '../Pages/Page.model';
 
 export type Chapter = {
-  chapter: string;
+  chapter: number;
   type: string;
   directory: string;
   chapterName: string;
@@ -38,7 +38,7 @@ export default class ChapterModel extends Model<Chapter> implements Chapter {
   }
 
   @Column
-  chapter!: string;
+  chapter!: number;
 
   @Column
   type!: string;

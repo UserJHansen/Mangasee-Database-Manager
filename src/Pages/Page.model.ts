@@ -1,5 +1,6 @@
 import {
-  AutoIncrement,
+  BeforeCreate,
+  BeforeUpdate,
   Column,
   ForeignKey,
   Model,
@@ -11,19 +12,24 @@ import Chapter from '../Chapters/Chapter.model';
 import MangaModel from '../Mangas/Manga.model';
 
 export type Page = {
-  id: number;
   chapter: string;
   mangaName: string;
   isBookmarked: boolean;
+  pageNum: number;
 };
 
 @Table
 export default class PageModel extends Model<Page> implements Page {
   @PrimaryKey
   @Unique
-  @AutoIncrement
   @Column
-  id!: number;
+  indexableID!: string;
+
+  @BeforeCreate
+  @BeforeUpdate
+  static updateIndexableID(instance: PageModel) {
+    instance.indexableID = `${instance.mangaName}-${instance.chapter}-${instance.pageNum}`;
+  }
 
   @ForeignKey(() => Chapter)
   @Column
@@ -32,6 +38,9 @@ export default class PageModel extends Model<Page> implements Page {
   @ForeignKey(() => MangaModel)
   @Column
   mangaName!: string;
+
+  @Column
+  pageNum!: number;
 
   @Column
   isBookmarked!: boolean;

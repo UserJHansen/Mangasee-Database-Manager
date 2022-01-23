@@ -21,7 +21,7 @@ export type Comment = {
   likes: number;
   hasLiked: boolean;
   timestamp: Date;
-  mangaID: string;
+  mangaName: string;
 };
 
 @Table
@@ -53,10 +53,10 @@ export default class MangaComment extends Model<Comment> implements Comment {
 
   @Column
   @ForeignKey(() => Manga)
-  mangaID!: string;
+  mangaName!: string;
 
   @BelongsTo(() => Manga)
-  parent!: Manga;
+  manga!: Manga;
 
   @HasMany(() => Reply)
   replys!: Reply[];

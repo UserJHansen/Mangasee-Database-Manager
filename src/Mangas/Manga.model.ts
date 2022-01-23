@@ -26,11 +26,12 @@ import AlternateTitle from './AlternateTitle.model';
 
 export type Manga = {
   title: string;
+  fullTitle: string;
   type: MangaTypeT;
   releaseYear: number;
   scanStatus: MangaStatusT;
   publishStatus: MangaStatusT;
-  lastReadID: string;
+  lastReadID: number;
   isSubscribed: boolean;
   numSubscribed: number;
   shouldNotify: boolean;
@@ -39,9 +40,10 @@ export type Manga = {
 export default class MangaModel extends Model<Manga> implements Manga {
   @Unique
   @PrimaryKey
-@Column
+  @Column
   title!: string;
 
+  @Unique
   @Column
   fullTitle!: string;
 
@@ -72,7 +74,7 @@ export default class MangaModel extends Model<Manga> implements Manga {
 
   @ForeignKey(() => Chapter)
   @Column
-  lastReadID!: string;
+  lastReadID!: number;
 
   @HasOne(() => Chapter)
   lastReadChapter!: Chapter;
