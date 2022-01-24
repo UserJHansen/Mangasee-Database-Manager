@@ -21,8 +21,8 @@ export default class User extends Model<User> {
   username!: string;
 
   @HasMany(() => Discussion)
-  discussions: Discussion[];
+  discussions!: Discussion[];
 
   @HasMany(() => DiscussionComment)
-  discussionComments: DiscussionComment[];
+  discussionComments!: DiscussionComment[];
 }

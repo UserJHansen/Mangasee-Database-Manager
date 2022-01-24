@@ -49,5 +49,5 @@ export default class DiscussionComment extends Model<DiscussionComment> {
   parent!: Discussion;
 
   @HasMany(() => Reply)
-  replys: Reply[];
+  replys!: Reply[];
 }

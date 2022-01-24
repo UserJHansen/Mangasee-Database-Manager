@@ -20,28 +20,28 @@ export default class Discussion extends Model<Discussion> {
   @Unique
   @PrimaryKey
   @Column
-  id: number;
+  id!: number;
 
   @Column
   @ForeignKey(() => User)
-  userID: number;
+  userID!: number;
 
   @BelongsTo(() => User)
-  user: User;
+  user!: User;
 
   @Column
-  title: string;
+  title!: string;
 
   @Column
-  type: '' | 'Request' | 'Question' | 'Announcement';
+  type!: '' | 'Request' | 'Question' | 'Announcement';
 
   @CreatedAt
   @Column
-  timestamp: Date;
+  timestamp!: Date;
 
   @Column
-  shouldNotify: boolean;
+  shouldNotify!: boolean;
 
   @HasMany(() => Comment)
-  comments: Comment[];
+  comments!: Comment[];
 }

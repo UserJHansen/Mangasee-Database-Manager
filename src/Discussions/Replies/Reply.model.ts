@@ -17,26 +17,26 @@ export default class DiscussionReply extends Model<DiscussionReply> {
   @Unique
   @PrimaryKey
   @Column
-  id: number;
+  id!: number;
 
   @Column
   @ForeignKey(() => User)
-  userID: number;
+  userID!: number;
 
   @BelongsTo(() => User)
-  user: User;
+  user!: User;
 
   @Column
-  content: string;
+  content!: string;
 
   @CreatedAt
   @Column
-  timestamp: Date;
+  timestamp!: Date;
 
   @Column
   @ForeignKey(() => Comment)
-  commentID: number;
+  commentID!: number;
 
   @BelongsTo(() => Comment)
-  parent: Comment;
+  parent!: Comment;
 }
