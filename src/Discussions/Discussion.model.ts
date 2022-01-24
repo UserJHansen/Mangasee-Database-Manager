@@ -6,15 +6,17 @@ import {
   CreatedAt,
   ForeignKey,
   BelongsTo,
+  HasMany,
+  Model,
 } from 'sequelize-typescript';
 
-import CommentParent from '../Comments/CommentParent.model';
 import User from '../Users/User.model';
+import Comment from './Comments/Comment.model';
 
-// export interface 
+// export interface
 
 @Table
-export default class Discussion extends CommentParent<Discussion> {
+export default class Discussion extends Model<Discussion> {
   @Unique
   @PrimaryKey
   @Column
@@ -39,4 +41,7 @@ export default class Discussion extends CommentParent<Discussion> {
 
   @Column
   shouldNotify: boolean;
+
+  @HasMany(() => Comment)
+  comments: Comment[];
 }

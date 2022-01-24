@@ -3,17 +3,19 @@ import {
   Column,
   CreatedAt,
   ForeignKey,
+  HasMany,
+  Model,
   PrimaryKey,
   Table,
   Unique,
 } from 'sequelize-typescript';
 
-import ReplyParent from '../Replies/ReplyParent.model';
-import User from '../Users/User.model';
-import CommentParent from './CommentParent.model';
+import Reply from '../Replies/Reply.model';
+import User from '../../Users/User.model';
+import Discussion from '../Discussion.model';
 
 @Table
-export default class Comment<T> extends ReplyParent<Comment<T>> {
+export default class DiscussionComment extends Model<DiscussionComment> {
   @Unique
   @PrimaryKey
   @Column
@@ -40,9 +42,12 @@ export default class Comment<T> extends ReplyParent<Comment<T>> {
   timestamp!: Date;
 
   @Column
-  @ForeignKey(() => CommentParent)
-  parentID!: number;
+  @ForeignKey(() => Discussion)
+  discussionID!: number;
 
-  @BelongsTo(() => CommentParent)
-  parent!: CommentParent<T>;
+  @BelongsTo(() => Discussion)
+  parent!: Discussion;
+
+  @HasMany(() => Reply)
+  replys: Reply[];
 }

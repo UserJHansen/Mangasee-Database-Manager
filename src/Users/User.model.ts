@@ -8,10 +8,10 @@ import {
 } from 'sequelize-typescript';
 
 import Discussion from '../Discussions/Discussion.model';
-import Comment from '../Comments/Comment.model';
+import DiscussionComment from '../Discussions/Comments/Comment.model';
 
 @Table
-export default class User extends Model {
+export default class User extends Model<User> {
   @Unique
   @PrimaryKey
   @Column
@@ -23,6 +23,6 @@ export default class User extends Model {
   @HasMany(() => Discussion)
   discussions: Discussion[];
 
-  @HasMany(() => Comment)
-  discussionComments: Comment<Discussion>[];
+  @HasMany(() => DiscussionComment)
+  discussionComments: DiscussionComment[];
 }

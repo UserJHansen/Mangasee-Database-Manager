@@ -9,11 +9,11 @@ import {
   Unique,
 } from 'sequelize-typescript';
 
-import User from '../Users/User.model';
-import ReplyParent from './ReplyParent.model';
+import User from '../../Users/User.model';
+import Comment from '../Comments/Comment.model';
 
 @Table
-export default class Reply<T> extends Model {
+export default class DiscussionReply extends Model<DiscussionReply> {
   @Unique
   @PrimaryKey
   @Column
@@ -34,9 +34,9 @@ export default class Reply<T> extends Model {
   timestamp: Date;
 
   @Column
-  @ForeignKey(() => ReplyParent)
-  parentID: number;
+  @ForeignKey(() => Comment)
+  commentID: number;
 
-  @BelongsTo(() => ReplyParent)
-  parent: ReplyParent<T>;
+  @BelongsTo(() => Comment)
+  parent: Comment;
 }
