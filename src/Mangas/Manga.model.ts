@@ -2,6 +2,7 @@ import {
   BelongsToMany,
   Column,
   CreatedAt,
+  HasMany,
   HasOne,
   Model,
   PrimaryKey,
@@ -13,7 +14,6 @@ import Author from '../Authors/Author.model';
 import AuthorLink from '../Authors/AuthorLink.model';
 
 import Chapter from '../Chapters/Chapter.model';
-import ChapterLink from '../Chapters/ChapterLink.model';
 
 import Genre from '../Genres/Genre.model';
 import GenreLink from '../Genres/GenreLink.model';
@@ -43,7 +43,7 @@ export default class Manga extends Model<Manga> {
   @Column
   scanStatus!: MangaStatusT;
 
-  @BelongsToMany(() => Chapter, () => ChapterLink)
+  @HasMany(() => Chapter)
   chapters!: Chapter[];
 
   @HasOne(() => Chapter)

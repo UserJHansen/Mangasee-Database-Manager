@@ -2,6 +2,7 @@ import {
   BelongsToMany,
   Column,
   Model,
+  PrimaryKey,
   Table,
   Unique,
 } from 'sequelize-typescript';
@@ -11,6 +12,7 @@ import AuthorLink from './AuthorLink.model';
 @Table
 export default class Author extends Model<Author> {
   @Unique
+  @PrimaryKey
   @Column
   name!: string;
 

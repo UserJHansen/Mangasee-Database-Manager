@@ -1,6 +1,6 @@
 import {
+  BelongsToMany,
   Column,
-  HasMany,
   Model,
   PrimaryKey,
   Table,
@@ -9,6 +9,7 @@ import {
 
 import Manga from '../Mangas/Manga.model';
 import { GenreT } from '../types';
+import GenreLink from './GenreLink.model';
 
 @Table
 export default class Genre extends Model<Genre> {
@@ -17,6 +18,6 @@ export default class Genre extends Model<Genre> {
   @Column
   id!: GenreT;
 
-  @HasMany(() => Manga)
+  @BelongsToMany(() => Manga, () => GenreLink)
   manga!: Manga[];
 }

@@ -1,7 +1,7 @@
 import {
-  BelongsToMany,
   Column,
   ForeignKey,
+  HasMany,
   Model,
   PrimaryKey,
   Table,
@@ -10,7 +10,6 @@ import {
 import Manga from '../Mangas/Manga.model';
 
 import Page from '../Pages/Page.model';
-import PageLink from '../Pages/PageLink.model';
 
 @Table
 export default class Chapter extends Model<Chapter> {
@@ -23,6 +22,6 @@ export default class Chapter extends Model<Chapter> {
   @Column
   mangaName!: string;
 
-  @BelongsToMany(() => Page, () => PageLink)
+  @HasMany(() => Page)
   pages!: Page[];
 }
