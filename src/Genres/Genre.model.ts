@@ -8,7 +8,7 @@ import {
 } from 'sequelize-typescript';
 
 import Manga from '../Mangas/Manga.model';
-import { GenreT } from '../types';
+import { GenreT } from '../types.d';
 import GenreLink from './GenreLink.model';
 
 @Table

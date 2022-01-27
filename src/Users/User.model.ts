@@ -10,8 +10,12 @@ import {
 import Discussion from '../Discussions/Discussion.model';
 import DiscussionComment from '../Discussions/Comments/Comment.model';
 
+export type User = {
+  id: number;
+  username: string;
+};
 @Table
-export default class User extends Model<User> {
+export default class UserModel extends Model<User> implements User {
   @Unique
   @PrimaryKey
   @Column

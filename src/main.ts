@@ -1,6 +1,8 @@
 import 'dotenv/config';
 
 import axios from 'axios';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
 import { Sequelize } from 'sequelize-typescript';
 
 import Author from './Authors/Author.model';
@@ -14,6 +16,7 @@ import GenreLink from './Genres/GenreLink.model';
 import Manga from './Mangas/Manga.model';
 import Page from './Pages/Page.model';
 import User from './Users/User.model';
+import fillDiscussions from './Discussions/fill';
 
 export async function MAIN() {
   const database = new Sequelize({
@@ -52,10 +55,21 @@ export async function MAIN() {
   // // });
   // discussion.save();
 
-  const login = await axios.post('https://mangasee123.com/auth/login.php', {EmailAddress: proccess.})
-  const result = await axios.get('https://mangasee123.com/');
+  const jar = new CookieJar();
+  const client = wrapper(
+    axios.create({
+      jar,
+      withCredentials: true,
+      baseURL: 'https://mangasee123.com/',
+    }),
+  );
 
-  console.log(login,result);
+  await client.post('https://mangasee123.com/auth/login.php', {
+    EmailAddress: process.env.MANGASEE_USERNAME,
+    Password: process.env.MANGASEE_PASSWORD,
+  });
+
+  fillDiscussions(client);
 }
 
 MAIN();

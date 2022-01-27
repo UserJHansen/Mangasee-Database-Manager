@@ -13,10 +13,20 @@ import {
 import User from '../Users/User.model';
 import Comment from './Comments/Comment.model';
 
-// export interface
+export type Discussion = {
+  id: number;
+  userID: number;
+  title: string;
+  type: '' | 'Request' | 'Question' | 'Announcement';
+  timestamp: Date;
+  shouldNotify: boolean;
+};
 
 @Table
-export default class Discussion extends Model<Discussion> {
+export default class DiscussionModel
+  extends Model<Discussion>
+  implements Discussion
+{
   @Unique
   @PrimaryKey
   @Column

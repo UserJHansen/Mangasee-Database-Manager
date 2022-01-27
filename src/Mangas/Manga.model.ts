@@ -18,7 +18,7 @@ import Chapter from '../Chapters/Chapter.model';
 import Genre from '../Genres/Genre.model';
 import GenreLink from '../Genres/GenreLink.model';
 
-import { MangaStatusT, MangaTypeT } from '../types';
+import { MangaStatusT, MangaTypeT } from '../types.d';
 
 @Table
 export default class Manga extends Model<Manga> {

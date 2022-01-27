@@ -14,8 +14,21 @@ import Reply from '../Replies/Reply.model';
 import User from '../../Users/User.model';
 import Discussion from '../Discussion.model';
 
+export type Comment = {
+  id: number;
+  userID: number;
+  content: string;
+  likes: number;
+  hasLiked: boolean;
+  timestamp: Date;
+  discussionID: number;
+};
+
 @Table
-export default class DiscussionComment extends Model<DiscussionComment> {
+export default class DiscussionComment
+  extends Model<Comment>
+  implements Comment
+{
   @Unique
   @PrimaryKey
   @Column

@@ -12,8 +12,16 @@ import {
 import User from '../../Users/User.model';
 import Comment from '../Comments/Comment.model';
 
+export type Reply = {
+  id: number;
+  userID: number;
+  content: string;
+  timestamp: Date;
+  commentID: number;
+};
+
 @Table
-export default class DiscussionReply extends Model<DiscussionReply> {
+export default class DiscussionReply extends Model<Reply> implements Reply {
   @Unique
   @PrimaryKey
   @Column
