@@ -1,5 +1,6 @@
 import { AxiosInstance } from 'axios';
 import AdjustedDate from '../AdjustedDate';
+import LoggingModel from '../Logging/Log.model';
 import { RawDiscussionT, RawPostT } from '../types.d';
 import User from '../Users/User.model';
 import DiscussionComment, { Comment } from './Comments/Comment.model';
@@ -7,6 +8,8 @@ import DiscussionModel, { Discussion } from './Discussion.model';
 import DiscussionReply, { Reply } from './Replies/Reply.model';
 
 export default async function fillDiscussions(client: AxiosInstance) {
+  const quietCreate = !(await DiscussionModel.findOne());
+
   const rawData = (await client.get('/discussion/index.get.php')).data
       .val as RawDiscussionT[],
     users = new Map<string, number>(),
@@ -35,6 +38,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
     users.set(post.Username, parseInt(post.UserID));
     Discussion.userID = parseInt(post.UserID);
     Discussion.shouldNotify = post.Notification === '1';
+    Discussion.id = parseInt(post.PostID);
 
     for (const Comment of post.Comments) {
       users.set(Comment.Username, parseInt(Comment.UserID));
@@ -63,12 +67,17 @@ export default async function fillDiscussions(client: AxiosInstance) {
   }
 
   for (const [key, value] of users) {
-    const count = await User.findOne({ where: { id: value } });
-    if (count !== null) {
-      await new User({
-        id: value,
-        username: key,
-      }).save();
+    const user = await User.findByPk(value);
+    if (user !== null) {
+      if (user.username !== key) {
+        await LoggingModel.create({
+          type: 'Username Update',
+          value: key,
+          previousValue: user.username,
+          targetID: value,
+        });
+        await user.update({ username: key });
+      }
     } else {
       await User.create({
         id: value,
@@ -77,33 +86,108 @@ export default async function fillDiscussions(client: AxiosInstance) {
     }
   }
   for (const discussion in parsedData) {
-    const count = await DiscussionModel.findOne({
-      where: { id: parsedData[discussion].id },
-    });
-    if (count !== null) {
+    const Discussion = await DiscussionModel.findByPk(
+      parsedData[discussion].id,
+    );
+    if (Discussion === null) {
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Discussion',
+          value: parsedData[discussion].title,
+          targetID: parsedData[discussion].id,
+        });
       await DiscussionModel.create(parsedData[discussion]);
     } else {
-      await new DiscussionModel(parsedData[discussion]).save();
+      const data = parsedData[discussion];
+
+      if (data.shouldNotify !== Discussion.shouldNotify) {
+        await Discussion.update({ shouldNotify: data.shouldNotify });
+
+        break;
+      }
+
+      if (
+        data.title !== Discussion.title ||
+        data.type !== Discussion.type ||
+        data.userID !== Discussion.userID ||
+        data.timestamp.toLocaleString() !==
+          Discussion.timestamp.toLocaleString()
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: 'Discussion Changed',
+          targetID: parsedData[discussion].id,
+        });
+      }
     }
   }
   for (const comment of comments.values()) {
-    const count = await DiscussionComment.findOne({
-      where: { id: comment.id },
-    });
-    if (count !== null) {
+    const Comment = await DiscussionComment.findByPk(comment.id);
+    if (Comment === null) {
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Comment',
+          value: comment.content,
+          targetID: comment.id,
+        });
       await DiscussionComment.create(comment);
     } else {
-      await new DiscussionComment(comment).save();
+      if (
+        comment.likes !== Comment.likes ||
+        comment.hasLiked !== Comment.hasLiked
+      ) {
+        await LoggingModel.create({
+          type: 'Likes Update',
+          value: comment.likes.toString(),
+          previousValue: Comment.likes.toString(),
+          targetID: comment.id,
+        });
+        await Comment.update({
+          likes: comment.likes,
+          hasLiked: comment.hasLiked,
+        });
+
+        break;
+      }
+
+      if (
+        comment.content !== Comment.content ||
+        comment.discussionID !== Comment.discussionID ||
+        comment.timestamp.toLocaleString() !==
+          Comment.timestamp.toLocaleString() ||
+        comment.userID !== Comment.userID
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: 'Comment Changed',
+          targetID: comment.id,
+        });
+      }
     }
   }
   for (const reply of replies.values()) {
-    const count = await DiscussionReply.findOne({ where: { id: reply.id } });
-    if (count !== null) {
+    const Reply = await DiscussionReply.findByPk(reply.id);
+    if (Reply === null) {
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Reply',
+          value: reply.content,
+          targetID: reply.id,
+        });
       await DiscussionReply.create(reply);
     } else {
-      await new DiscussionReply(reply).save();
+      if (
+        reply.commentID !== Reply.commentID ||
+        reply.userID !== Reply.userID ||
+        reply.timestamp.toLocaleString() !== Reply.timestamp.toLocaleString() ||
+        reply.content !== Reply.content
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: 'Reply Changed',
+          targetID: reply.id,
+        });
+      }
     }
   }
-
-  console.log(users, parsedData, comments, replies);
 }

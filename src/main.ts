@@ -17,6 +17,7 @@ import Manga from './Mangas/Manga.model';
 import Page from './Pages/Page.model';
 import User from './Users/User.model';
 import fillDiscussions from './Discussions/fill';
+import LoggingModel from './Logging/Log.model';
 
 export async function MAIN() {
   const database = new Sequelize({
@@ -34,6 +35,7 @@ export async function MAIN() {
       Manga,
       Page,
       User,
+      LoggingModel,
     ],
   });
   try {
@@ -43,17 +45,6 @@ export async function MAIN() {
     console.error('Unable to connect to the database:', error);
   }
   database.sync();
-  // const user = new User({ id: 1, username: 'admin' });
-  // user.save();
-  // // const discussion = new Discussion({
-  // //   id: 168,
-  // //   userID: 1,
-  // //   title: 'test',
-  // //   type: 'Request',
-  // //   timestamp: new Date(),
-  // //   shouldNotify: true,
-  // // });
-  // discussion.save();
 
   const jar = new CookieJar();
   const client = wrapper(
