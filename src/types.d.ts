@@ -71,6 +71,21 @@ export type RawReplyT = {
   Username: string;
 };
 
+export type RawMangaCommentT = {
+  CommentContent: string;
+  CommentID: string;
+  LikeCount: string;
+  Liked: boolean;
+  Replies: RawReplyT[];
+  ReplyCount: string;
+  ReplyMessage: string;
+  Replying: boolean;
+  showReply: boolean;
+  TimeCommented: string;
+  UserID: string;
+  Username: string;
+};
+
 export type RawCommentT = {
   CommentContent: string;
   CommentID: string;
@@ -97,4 +112,23 @@ export type RawPostT = {
   TimePosted: string;
   UserID: string;
   Username: string;
+};
+
+export type RawMangaT = {
+  i: string; // indexable Name
+  s: string; // Full Name
+  o: 'yes' | 'no'; // is Official?
+  ss: MangaStatusT; // Scan Status
+  ps: MangaStatusT; // Publish Status
+  t: MangaTypeT; // Type of Manga (Manhua)
+  v: string; // Popularity of all time
+  vm: string; // Popularity of this month
+  y: string; // Year of Release
+  a: string[]; // Author
+  al: string[]; // Alternate names
+  l: string; // Latest Chapter Chapter
+  lt: number; // Latest Chapter Date in Unix Time
+  ls: string; // Latest Chapter Date
+  g: GenreT[]; // Genres
+  h: boolean; // isPopular
 };

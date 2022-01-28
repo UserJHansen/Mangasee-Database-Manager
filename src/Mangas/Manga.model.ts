@@ -2,6 +2,7 @@ import {
   BelongsToMany,
   Column,
   CreatedAt,
+  ForeignKey,
   HasMany,
   HasOne,
   Model,
@@ -20,13 +21,25 @@ import GenreLink from '../Genres/GenreLink.model';
 
 import { MangaStatusT, MangaTypeT } from '../types.d';
 
+export type Manga = {
+  title: string;
+  type: MangaTypeT;
+  releaseDate: Date;
+  scanStatus: MangaStatusT;
+  lastReadID: number;
+  isSubscribed: boolean;
+};
 @Table
-export default class Manga extends Model<Manga> {
+export default class MangaModel extends Model<Manga> implements Manga {
   @Unique
   @PrimaryKey
   @Column
   title!: string;
 
+  @Column
+  fullTitle!: string;
+
+  @HasMany(() => AlternateTitle)
   @BelongsToMany(() => Author, () => AuthorLink)
   authors!: Author[];
 
@@ -45,6 +58,10 @@ export default class Manga extends Model<Manga> {
 
   @HasMany(() => Chapter)
   chapters!: Chapter[];
+
+  @ForeignKey(() => Chapter)
+  @Column
+  lastReadID!: number;
 
   @HasOne(() => Chapter)
   lastReadChapter!: Chapter;
