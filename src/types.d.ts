@@ -132,3 +132,10 @@ export type RawMangaT = {
   g: GenreT[]; // Genres
   h: boolean; // isPopular
 };
+
+export type RawChapterT = {
+  Chapter: string;
+  Type: string;
+  Date: string;
+  ChapterName: string | null;
+};

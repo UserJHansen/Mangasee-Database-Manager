@@ -16,18 +16,24 @@ import AuthorLink from '../Authors/AuthorLink.model';
 
 import Chapter from '../Chapters/Chapter.model';
 
+import MangaComment from './Comments/Comment.model';
+
 import Genre from '../Genres/Genre.model';
 import GenreLink from '../Genres/GenreLink.model';
 
 import { MangaStatusT, MangaTypeT } from '../types.d';
+import AlternateTitle from './AlternateTitle.model';
 
 export type Manga = {
   title: string;
   type: MangaTypeT;
-  releaseDate: Date;
+  releaseYear: number;
   scanStatus: MangaStatusT;
+  publishStatus: MangaStatusT;
   lastReadID: number;
   isSubscribed: boolean;
+  numSubscribed: number;
+  shouldNotify: boolean;
 };
 @Table
 export default class MangaModel extends Model<Manga> implements Manga {
@@ -40,6 +46,8 @@ export default class MangaModel extends Model<Manga> implements Manga {
   fullTitle!: string;
 
   @HasMany(() => AlternateTitle)
+  alternateTitles!: AlternateTitle[];
+
   @BelongsToMany(() => Author, () => AuthorLink)
   authors!: Author[];
 
@@ -51,10 +59,13 @@ export default class MangaModel extends Model<Manga> implements Manga {
 
   @CreatedAt
   @Column
-  releaseDate!: Date;
+  releaseYear!: number;
 
   @Column
   scanStatus!: MangaStatusT;
+
+  @Column
+  publishStatus!: MangaStatusT;
 
   @HasMany(() => Chapter)
   chapters!: Chapter[];
@@ -66,6 +77,15 @@ export default class MangaModel extends Model<Manga> implements Manga {
   @HasOne(() => Chapter)
   lastReadChapter!: Chapter;
 
+  @HasMany(() => MangaComment)
+  comments!: MangaComment[];
+
   @Column
   isSubscribed!: boolean;
+
+  @Column
+  numSubscribed!: number;
+
+  @Column
+  shouldNotify!: boolean;
 }

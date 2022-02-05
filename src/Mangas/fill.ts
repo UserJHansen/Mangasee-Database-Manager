@@ -1,68 +1,111 @@
 import { AxiosInstance } from 'axios';
 import AdjustedDate from '../AdjustedDate';
+import { FindVariable } from '../getJsVar';
 import LoggingModel from '../Logging/Log.model';
-import { RawMangaCommentT, RawMangaT, RawPostT } from '../types.d';
+import { RawChapterT, RawMangaCommentT, RawMangaT } from '../types.d';
 import User from '../Users/User.model';
-import DiscussionComment, { Comment } from './Comments/Comment.model';
+import MangaComment, { Comment } from './Comments/Comment.model';
 import MangaModel, { Manga } from './Manga.model';
-import DiscussionReply, { Reply } from './Replies/Reply.model';
+import MangaReply, { Reply } from './Replies/Reply.model';
 
-function extractComments(
+async function extractComments(
   client: AxiosInstance,
   name: string,
   quietCreate: boolean,
 ) {
-  const rawData = (await client.post('/manga/comment.get.php', { IndexName }))
-      .data.val as RawMangaCommentT[],
-    users = new Map<string, number>(),
-    parsedData: Manga[] = rawData.map((data) => {
-      return {
-        id: parseInt(data.PostID),
+  const rawData = (
+      await client.post('/manga/comment.get.php', { IndexName: name })
+    ).data.val as RawMangaCommentT[],
+    users = new Map<string, number>();
 
-        userID: 0,
-        title: data.PostTitle,
-        type: data.PostType,
-        timestamp: new AdjustedDate(data.TimePosted),
+  for (const key in rawData) {
+    const rawComment = rawData[key];
 
-        shouldNotify: true,
-      };
-    }),
-    comments = new Map<number, Comment>(),
-    replies = new Map<number, Reply>();
+    let i = rawComment.Replies.length;
+    for (i; i; i--) {
+      const reply = await MangaReply.findByPk(parseInt(rawComment.CommentID)),
+        newReply: Reply = {
+          id: parseInt(rawComment.CommentID),
+          userID: parseInt(rawComment.UserID),
+          content: rawComment.CommentContent,
+          timestamp: new AdjustedDate(rawComment.TimeCommented),
+          commentID: parseInt(rawComment.CommentID),
+        };
 
-  for (const Discussion of parsedData) {
-    const post = (
-      await client.post('/discussion/post.get.php', {
-        id: Discussion.id,
-      })
-    ).data.val as RawPostT;
+      if (reply !== null) {
+        if (
+          reply.userID !== newReply.userID ||
+          reply.content !== newReply.content ||
+          reply.timestamp.toLocaleString() !==
+            newReply.timestamp.toLocaleString() ||
+          reply.commentID !== newReply.commentID
+        ) {
+          await LoggingModel.create({
+            type: 'Unexpected Event',
+            value: JSON.stringify(newReply),
+            previousValue: JSON.stringify(reply),
+            targetID: reply.id,
+          });
+        }
+      } else {
+        await MangaReply.create(newReply);
+        if (!quietCreate) {
+          await LoggingModel.create({
+            type: 'New Reply',
+            value: JSON.stringify(newReply),
+            targetID: newReply.id,
+          });
+        }
+      }
+    }
 
-    users.set(post.Username, parseInt(post.UserID));
-    Discussion.userID = parseInt(post.UserID);
-    Discussion.shouldNotify = post.Notification === '1';
-    Discussion.id = parseInt(post.PostID);
-
-    for (const Comment of post.Comments) {
-      users.set(Comment.Username, parseInt(Comment.UserID));
-      comments.set(parseInt(Comment.CommentID), {
-        id: parseInt(Comment.CommentID),
-        content: Comment.CommentContent,
-        timestamp: new AdjustedDate(Comment.TimeCommented),
-        userID: parseInt(Comment.UserID),
-        likes: parseInt(Comment.LikeCount),
-        hasLiked: Comment.Liked,
-        discussionID: parseInt(post.PostID),
-      });
-
-      for (const Reply of Comment.Replies) {
-        users.set(Reply.Username, parseInt(Reply.UserID));
-
-        replies.set(parseInt(Reply.CommentID), {
-          id: parseInt(Reply.CommentID),
-          content: Reply.CommentContent,
-          timestamp: new AdjustedDate(Reply.TimeCommented),
-          userID: parseInt(Reply.UserID),
-          commentID: parseInt(Comment.CommentID),
+    const comment = await MangaComment.findByPk(parseInt(rawComment.CommentID));
+    const newcomment: Comment = {
+      id: parseInt(rawComment.CommentID),
+      userID: parseInt(rawComment.UserID),
+      content: rawComment.CommentContent,
+      likes: parseInt(rawComment.LikeCount),
+      hasLiked: rawComment.Liked,
+      timestamp: new AdjustedDate(rawComment.TimeCommented),
+      mangaID: name,
+    };
+    if (comment !== null) {
+      if (
+        comment.likes !== newcomment.likes ||
+        comment.hasLiked !== newcomment.hasLiked
+      ) {
+        await LoggingModel.create({
+          type: 'Likes Update',
+          value: newcomment.likes.toString(),
+          previousValue: comment.likes.toString(),
+          targetID: comment.id,
+        });
+        await comment.update({
+          likes: newcomment.likes,
+          hasLiked: newcomment.hasLiked,
+        });
+      }
+      if (
+        comment.content !== newcomment.content ||
+        comment.mangaID !== newcomment.mangaID ||
+        comment.timestamp.toLocaleString() !==
+          newcomment.timestamp.toLocaleString() ||
+        comment.userID !== newcomment.userID
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: JSON.stringify(newcomment),
+          previousValue: JSON.stringify(comment),
+          targetID: newcomment.id,
+        });
+      }
+    } else {
+      await MangaComment.create(newcomment);
+      if (!quietCreate) {
+        await LoggingModel.create({
+          type: 'New Comment',
+          value: JSON.stringify(newcomment),
+          targetID: newcomment.id,
         });
       }
     }
@@ -87,111 +130,6 @@ function extractComments(
       });
     }
   }
-  for (const discussion in parsedData) {
-    const Discussion = await DiscussionModel.findByPk(
-      parsedData[discussion].id,
-    );
-    if (Discussion === null) {
-      if (!quietCreate)
-        await LoggingModel.create({
-          type: 'New Discussion',
-          value: parsedData[discussion].title,
-          targetID: parsedData[discussion].id,
-        });
-      await DiscussionModel.create(parsedData[discussion]);
-    } else {
-      const data = parsedData[discussion];
-
-      if (data.shouldNotify !== Discussion.shouldNotify) {
-        await Discussion.update({ shouldNotify: data.shouldNotify });
-
-        break;
-      }
-
-      if (
-        data.title !== Discussion.title ||
-        data.type !== Discussion.type ||
-        data.userID !== Discussion.userID ||
-        data.timestamp.toLocaleString() !==
-          Discussion.timestamp.toLocaleString()
-      ) {
-        await LoggingModel.create({
-          type: 'Unexpected Event',
-          value: 'Discussion Changed',
-          targetID: parsedData[discussion].id,
-        });
-      }
-    }
-  }
-  for (const comment of comments.values()) {
-    const Comment = await DiscussionComment.findByPk(comment.id);
-    if (Comment === null) {
-      if (!quietCreate)
-        await LoggingModel.create({
-          type: 'New Comment',
-          value: comment.content,
-          targetID: comment.id,
-        });
-      await DiscussionComment.create(comment);
-    } else {
-      if (
-        comment.likes !== Comment.likes ||
-        comment.hasLiked !== Comment.hasLiked
-      ) {
-        await LoggingModel.create({
-          type: 'Likes Update',
-          value: comment.likes.toString(),
-          previousValue: Comment.likes.toString(),
-          targetID: comment.id,
-        });
-        await Comment.update({
-          likes: comment.likes,
-          hasLiked: comment.hasLiked,
-        });
-
-        break;
-      }
-
-      if (
-        comment.content !== Comment.content ||
-        comment.discussionID !== Comment.discussionID ||
-        comment.timestamp.toLocaleString() !==
-          Comment.timestamp.toLocaleString() ||
-        comment.userID !== Comment.userID
-      ) {
-        await LoggingModel.create({
-          type: 'Unexpected Event',
-          value: 'Comment Changed',
-          targetID: comment.id,
-        });
-      }
-    }
-  }
-  for (const reply of replies.values()) {
-    const Reply = await DiscussionReply.findByPk(reply.id);
-    if (Reply === null) {
-      if (!quietCreate)
-        await LoggingModel.create({
-          type: 'New Reply',
-          value: reply.content,
-          targetID: reply.id,
-        });
-      await DiscussionReply.create(reply);
-    } else {
-      if (
-        reply.commentID !== Reply.commentID ||
-        reply.userID !== Reply.userID ||
-        reply.timestamp.toLocaleString() !== Reply.timestamp.toLocaleString() ||
-        reply.content !== Reply.content
-      ) {
-        await LoggingModel.create({
-          type: 'Unexpected Event',
-          value: 'Reply Changed',
-          targetID: reply.id,
-        });
-      }
-    }
-  }
 }
 
 export default async function fillManga(client: AxiosInstance) {
@@ -201,12 +139,38 @@ export default async function fillManga(client: AxiosInstance) {
       .val as RawMangaT[],
     authors = new Map<string, string[]>(),
     genres = new Map<string, string[]>(),
-    parsedData: Manga[] = rawData.map((data) => {
-      data.a.forEach((author) => {
-        authors.set(author, [...(authors.get(author) || []), data.i]);
-      });
-      data.g.forEach((genre) => {
-        genres.set(genre, [...(genres.get(genre) || []), data.i]);
-      });
-    });
+    parsedData: Manga[] = await Promise.all(
+      rawData.map(async (data) => {
+        const rawHTML = (await client.get(`/manga/${data.i}`)).data,
+          chapters: RawChapterT[] = JSON.parse(
+            FindVariable('vm.Chapters', rawHTML),
+          ),
+          manga: Manga = {
+            title: data.i,
+            type: data.t,
+            releaseYear: parseInt(data.y),
+            scanStatus: data.ss,
+            publishStatus: data.ps,
+            lastReadID: parseInt(FindVariable('vm.LastChapterRead', rawHTML)),
+            isSubscribed: FindVariable('vm.Subbed', rawHTML) === 'true',
+            numSubscribed: parseInt(FindVariable('vm.NumSubs', rawHTML)),
+            shouldNotify: FindVariable('vm.Notification', rawHTML) === 'true',
+          };
+        extractComments(client, data.i, quietCreate);
+
+        let i = chapters.length;
+        for (i; i; i--) {
+          const newchapter = chapters[i];
+
+          
+        }
+
+        data.a.forEach((author) => {
+          authors.set(author, [...(authors.get(author) || []), data.i]);
+        });
+        data.g.forEach((genre) => {
+          genres.set(genre, [...(genres.get(genre) || []), data.i]);
+        });
+      }),
+    );
 }

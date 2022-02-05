@@ -18,6 +18,7 @@ import Page from './Pages/Page.model';
 import User from './Users/User.model';
 import fillDiscussions from './Discussions/fill';
 import LoggingModel from './Logging/Log.model';
+import AlternateTitleModel from './Mangas/AlternateTitle.model';
 
 export async function MAIN() {
   const database = new Sequelize({
@@ -25,6 +26,7 @@ export async function MAIN() {
     storage: './database.sqlite',
     models: [
       Author,
+      AlternateTitleModel,
       AuthorLink,
       GenreLink,
       Chapter,
