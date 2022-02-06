@@ -443,4 +443,64 @@ export default async function fillManga(client: AxiosInstance) {
       }
     }
   }
+
+  for (const [authorName, mangas] of authors) {
+    const author = await AuthorModel.findByPk(authorName),
+      links = await AuthorLink.findAll({
+        where: {
+          authorName,
+        },
+      });
+
+    if (author === null) {
+      await AuthorModel.create({
+        name: authorName,
+      });
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Author',
+          value: authorName,
+          targetID: authorName,
+        });
+    }
+
+    for (const manga of mangas) {
+      if (!links.some((link) => link.mangaName === manga)) {
+        await AuthorLink.create({
+          authorName,
+          mangaName: manga,
+        });
+      }
+    }
+  }
+
+  for (const [genreName, mangas] of genres) {
+    const genre = await GenreModel.findByPk(genreName),
+      links = await GenreLinkModel.findAll({
+        where: {
+          genre: genreName,
+        },
+      });
+
+    if (genre === null) {
+      await GenreModel.create({
+        genre: genreName,
+      });
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Author',
+          value: genreName,
+          targetID: genreName,
+        });
+    }
+
+    for (const manga of mangas) {
+      if (!links.some((link) => link.mangaName === manga)) {
+        await GenreLinkModel.create({
+          genre: genreName,
+          mangaName: manga,
+        });
+      }
+    }
+  }
 }
