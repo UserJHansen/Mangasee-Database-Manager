@@ -2,7 +2,6 @@ import {
   BeforeCreate,
   BeforeUpdate,
   Column,
-  ForeignKey,
   Model,
   PrimaryKey,
   Table,

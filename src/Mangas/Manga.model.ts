@@ -31,7 +31,7 @@ export type Manga = {
   releaseYear: number;
   scanStatus: MangaStatusT;
   publishStatus: MangaStatusT;
-  lastReadID: number;
+  lastReadID: string;
   isSubscribed: boolean;
   numSubscribed: number;
   shouldNotify: boolean;
@@ -74,7 +74,7 @@ export default class MangaModel extends Model<Manga> implements Manga {
 
   @ForeignKey(() => Chapter)
   @Column
-  lastReadID!: number;
+  lastReadID!: string;
 
   @HasOne(() => Chapter)
   lastReadChapter!: Chapter;
