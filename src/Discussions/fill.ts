@@ -74,7 +74,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
           type: 'Username Update',
           value: key,
           previousValue: user.username,
-          targetID: value,
+          targetID: value.toString(),
         });
         await user.update({ username: key });
       }
@@ -94,7 +94,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
         await LoggingModel.create({
           type: 'New Discussion',
           value: parsedData[discussion].title,
-          targetID: parsedData[discussion].id,
+          targetID: parsedData[discussion].id.toString(),
         });
       await DiscussionModel.create(parsedData[discussion]);
     } else {
@@ -116,7 +116,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
         await LoggingModel.create({
           type: 'Unexpected Event',
           value: 'Discussion Changed',
-          targetID: parsedData[discussion].id,
+          targetID: parsedData[discussion].id.toString(),
         });
       }
     }
@@ -128,7 +128,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
         await LoggingModel.create({
           type: 'New Comment',
           value: comment.content,
-          targetID: comment.id,
+          targetID: comment.id.toString(),
         });
       await DiscussionComment.create(comment);
     } else {
@@ -140,7 +140,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
           type: 'Likes Update',
           value: comment.likes.toString(),
           previousValue: Comment.likes.toString(),
-          targetID: comment.id,
+          targetID: comment.id.toString(),
         });
         await Comment.update({
           likes: comment.likes,
@@ -160,7 +160,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
         await LoggingModel.create({
           type: 'Unexpected Event',
           value: 'Comment Changed',
-          targetID: comment.id,
+          targetID: comment.id.toString(),
         });
       }
     }
@@ -172,7 +172,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
         await LoggingModel.create({
           type: 'New Reply',
           value: reply.content,
-          targetID: reply.id,
+          targetID: reply.id.toString(),
         });
       await DiscussionReply.create(reply);
     } else {
@@ -185,7 +185,7 @@ export default async function fillDiscussions(client: AxiosInstance) {
         await LoggingModel.create({
           type: 'Unexpected Event',
           value: 'Reply Changed',
-          targetID: reply.id,
+          targetID: reply.id.toString(),
         });
       }
     }

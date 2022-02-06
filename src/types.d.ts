@@ -136,6 +136,19 @@ export type RawMangaT = {
 export type RawChapterT = {
   Chapter: string;
   Type: string;
+  Page: string;
+  Directory: string;
   Date: string;
   ChapterName: string | null;
+};
+
+export type RawBookmarkT = {
+  Removing: boolean;
+  SeriesID: string;
+  SeriesName: string;
+  IndexName: string;
+  Chapter: string;
+  Page: string;
+  Date: string;
+  DateStamp: number;
 };

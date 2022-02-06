@@ -1,27 +1,50 @@
 import {
   Column,
+  CreatedAt,
   ForeignKey,
   HasMany,
   Model,
-  PrimaryKey,
   Table,
-  Unique,
 } from 'sequelize-typescript';
 import Manga from '../Mangas/Manga.model';
 
 import Page from '../Pages/Page.model';
 
+export type Chapter = {
+  chapter: string;
+  type: string;
+  directory: string;
+  chapterName: string;
+  mangaName: string;
+  isBookmarked: boolean;
+  releaseDate: Date;
+};
+
 @Table
-export default class Chapter extends Model<Chapter> {
-  @Unique
-  @PrimaryKey
+export default class ChapterModel extends Model<Chapter> implements Chapter {
   @Column
-  id!: number;
+  chapter!: string;
+
+  @Column
+  type!: string;
+
+  @Column
+  directory!: string;
+
+  @Column
+  chapterName!: string;
 
   @ForeignKey(() => Manga)
   @Column
   mangaName!: string;
 
+  @Column
+  isBookmarked!: boolean;
+
   @HasMany(() => Page)
   pages!: Page[];
+
+  @CreatedAt
+  @Column
+  releaseDate!: Date;
 }

@@ -8,10 +8,18 @@ export type Log = {
     | 'New Reply'
     | 'Unexpected Event'
     | 'Notify Updated'
-    | 'Likes Update';
+    | 'Likes Update'
+    | 'New Chapter'
+    | 'Page Count Update'
+    | 'New Manga'
+    | 'Scan Status Changed'
+    | 'Publish Status Changed'
+    | 'Last Read Update'
+    | 'Subscription Update'
+    | 'Subscription Number Update'|'Notification Pref Update';
   value: string;
   previousValue?: string;
-  targetID: number;
+  targetID: string;
 };
 
 @Table
@@ -31,7 +39,7 @@ export default class LoggingModel extends Model<Log> implements Log {
   previousValue: string;
 
   @Column
-  targetID: number;
+  targetID: string;
 
   @Column
   value!: string;
