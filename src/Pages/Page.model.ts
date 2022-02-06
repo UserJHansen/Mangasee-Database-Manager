@@ -1,6 +1,6 @@
 import {
-  BelongsTo,
   Column,
+  ForeignKey,
   Model,
   PrimaryKey,
   Table,
@@ -23,11 +23,11 @@ export default class PageModel extends Model<Page> implements Page {
   @Column
   id!: number;
 
-  @BelongsTo(() => Chapter)
+  @ForeignKey(() => Chapter)
   @Column
   chapter!: string;
 
-  @BelongsTo(() => MangaModel)
+  @ForeignKey(() => MangaModel)
   @Column
   mangaName!: string;
 

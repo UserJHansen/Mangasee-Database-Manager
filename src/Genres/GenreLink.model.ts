@@ -3,11 +3,19 @@ import Manga from '../Mangas/Manga.model';
 import { GenreT } from '../types.d';
 import Genre from './Genre.model';
 
+export type GenreLink = {
+  genre: GenreT;
+  mangaName: string;
+};
+
 @Table
-export default class GenreLink extends Model<GenreLink> {
+export default class GenreLinkModel
+  extends Model<GenreLink>
+  implements GenreLink
+{
   @ForeignKey(() => Genre)
   @Column
-  Genre!: GenreT;
+  genre!: GenreT;
 
   @ForeignKey(() => Manga)
   @Column

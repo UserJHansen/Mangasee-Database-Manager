@@ -9,8 +9,12 @@ import {
 import Manga from '../Mangas/Manga.model';
 import AuthorLink from './AuthorLink.model';
 
+export type Author = {
+  name: string;
+};
+
 @Table
-export default class Author extends Model<Author> {
+export default class AuthorModel extends Model<Author> implements Author {
   @Unique
   @PrimaryKey
   @Column

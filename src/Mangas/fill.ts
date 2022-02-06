@@ -1,17 +1,23 @@
 import { AxiosInstance } from 'axios';
 import AdjustedDate from '../AdjustedDate';
+import AuthorModel from '../Authors/Author.model';
+import AuthorLink from '../Authors/AuthorLink.model';
 import ChapterModel, { Chapter } from '../Chapters/Chapter.model';
 import chapterURLEncode from '../ChapterURLEncode';
+import GenreModel from '../Genres/Genre.model';
+import GenreLinkModel from '../Genres/GenreLink.model';
 import { FindVariable } from '../getJsVar';
 import LoggingModel from '../Logging/Log.model';
 import PageModel from '../Pages/Page.model';
 import {
+  GenreT,
   RawBookmarkT,
   RawChapterT,
   RawMangaCommentT,
   RawMangaT,
 } from '../types.d';
 import User from '../Users/User.model';
+import AlternateTitleModel from './AlternateTitle.model';
 import MangaComment, { Comment } from './Comments/Comment.model';
 import MangaModel, { Manga } from './Manga.model';
 import MangaReply, { Reply } from './Replies/Reply.model';
@@ -146,7 +152,7 @@ export default async function fillManga(client: AxiosInstance) {
   const rawData = (await client.get('/search/search.php')).data
       .val as RawMangaT[],
     authors = new Map<string, string[]>(),
-    genres = new Map<string, string[]>();
+    genres = new Map<GenreT, string[]>();
 
   for (let num = 0, l = rawData.length; num < l; num++) {
     const data = rawData[num],
@@ -177,6 +183,23 @@ export default async function fillManga(client: AxiosInstance) {
       bookmarked: RawBookmarkT[] = (await client.get(`/user/bookmark.get.php`))
         .data.val;
     extractComments(client, data.i, quietCreate);
+
+    for (let i = 0, l = data.al.length; i < l; i++) {
+      const alternateName = data.al[i],
+        alternate = await AlternateTitleModel.findByPk(alternateName);
+
+      if (alternate !== null) {
+        if (alternate.manga !== newmanga.title) {
+          await LoggingModel.create({
+            type: 'Alternate Title Mismatch',
+            value: alternateName,
+            previousValue: alternate.manga,
+            targetID: alternate.id.toString(),
+          });
+          await alternate.update({ manga: newmanga.title });
+        }
+      }
+    }
 
     const manga = await MangaModel.findByPk(data.i);
     if (manga !== null) {
@@ -356,5 +379,65 @@ export default async function fillManga(client: AxiosInstance) {
     data.g.forEach((genre) => {
       genres.set(genre, [...(genres.get(genre) || []), data.i]);
     });
+  }
+
+  for (const [authorName, mangas] of authors) {
+    const author = await AuthorModel.findByPk(authorName),
+      links = await AuthorLink.findAll({
+        where: {
+          authorName,
+        },
+      });
+
+    if (author === null) {
+      await AuthorModel.create({
+        name: authorName,
+      });
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Author',
+          value: authorName,
+          targetID: authorName,
+        });
+    }
+
+    for (const manga of mangas) {
+      if (!links.some((link) => link.mangaName === manga)) {
+        await AuthorLink.create({
+          authorName,
+          mangaName: manga,
+        });
+      }
+    }
+  }
+
+  for (const [genreName, mangas] of genres) {
+    const genre = await GenreModel.findByPk(genreName),
+      links = await GenreLinkModel.findAll({
+        where: {
+          genre: genreName,
+        },
+      });
+
+    if (genre === null) {
+      await GenreModel.create({
+        genre: genreName,
+      });
+      if (!quietCreate)
+        await LoggingModel.create({
+          type: 'New Author',
+          value: genreName,
+          targetID: genreName,
+        });
+    }
+
+    for (const manga of mangas) {
+      if (!links.some((link) => link.mangaName === manga)) {
+        await GenreLinkModel.create({
+          genre: genreName,
+          mangaName: manga,
+        });
+      }
+    }
   }
 }

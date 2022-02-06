@@ -16,7 +16,10 @@ export type Log = {
     | 'Publish Status Changed'
     | 'Last Read Update'
     | 'Subscription Update'
-    | 'Subscription Number Update'|'Notification Pref Update';
+    | 'Subscription Number Update'
+    | 'Notification Pref Update'
+    | 'Alternate Title Mismatch'
+    | 'New Author';
   value: string;
   previousValue?: string;
   targetID: string;

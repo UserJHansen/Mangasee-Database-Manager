@@ -19,6 +19,9 @@ import User from './Users/User.model';
 import fillDiscussions from './Discussions/fill';
 import LoggingModel from './Logging/Log.model';
 import AlternateTitleModel from './Mangas/AlternateTitle.model';
+import MangaComment from './Mangas/Comments/Comment.model';
+import MangaReply from './Mangas/Replies/Reply.model';
+import fillManga from './Mangas/fill';
 
 export async function MAIN() {
   const database = new Sequelize({
@@ -35,6 +38,8 @@ export async function MAIN() {
       Discussion,
       Genre,
       Manga,
+      MangaComment,
+      MangaReply,
       Page,
       User,
       LoggingModel,
@@ -63,6 +68,7 @@ export async function MAIN() {
   });
 
   fillDiscussions(client);
+  fillManga(client);
 }
 
 MAIN();

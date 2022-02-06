@@ -21,7 +21,7 @@ export type Reply = {
 };
 
 @Table
-export default class DiscussionReply extends Model<Reply> implements Reply {
+export default class MangaReply extends Model<Reply> implements Reply {
   @Unique
   @PrimaryKey
   @Column

@@ -11,12 +11,16 @@ import Manga from '../Mangas/Manga.model';
 import { GenreT } from '../types.d';
 import GenreLink from './GenreLink.model';
 
+export type Genre = {
+  genre: GenreT;
+};
+
 @Table
-export default class Genre extends Model<Genre> {
+export default class GenreModel extends Model<Genre> implements Genre {
   @Unique
   @PrimaryKey
   @Column
-  id!: GenreT;
+  genre!: GenreT;
 
   @BelongsToMany(() => Manga, () => GenreLink)
   manga!: Manga[];
