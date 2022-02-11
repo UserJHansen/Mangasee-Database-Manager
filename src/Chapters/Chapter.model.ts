@@ -6,7 +6,9 @@ import {
   ForeignKey,
   HasMany,
   Model,
+  PrimaryKey,
   Table,
+  Unique,
 } from 'sequelize-typescript';
 import Manga from '../Mangas/Manga.model';
 
