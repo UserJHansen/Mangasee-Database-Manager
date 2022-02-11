@@ -39,7 +39,7 @@ export type Manga = {
 export default class MangaModel extends Model<Manga> implements Manga {
   @Unique
   @PrimaryKey
-  @Column
+@Column
   title!: string;
 
   @Column

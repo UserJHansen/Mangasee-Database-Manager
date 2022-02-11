@@ -149,8 +149,7 @@ async function extractComments(
 export default async function fillManga(client: AxiosInstance) {
   const quietCreate = !(await MangaModel.findOne());
 
-  const rawData = (await client.get('/search/search.php')).data
-      .val as RawMangaT[],
+  const rawData = (await client.get('/search/search.php')).data as RawMangaT[],
     authors = new Map<string, string[]>(),
     genres = new Map<GenreT, string[]>();
 
@@ -287,7 +286,7 @@ export default async function fillManga(client: AxiosInstance) {
 
     let i = chapters.length;
     for (i; i; i--) {
-      const chap = chapters[i],
+      const chap = chapters[i - 1],
         newchapter: Chapter = {
           chapter: chap.Chapter,
           type: chap.Type,

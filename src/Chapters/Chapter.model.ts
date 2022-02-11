@@ -1,10 +1,14 @@
 import {
+  BeforeCreate,
+  BeforeUpdate,
   Column,
   CreatedAt,
   ForeignKey,
   HasMany,
   Model,
+  PrimaryKey,
   Table,
+  Unique,
 } from 'sequelize-typescript';
 import Manga from '../Mangas/Manga.model';
 
@@ -22,6 +26,17 @@ export type Chapter = {
 
 @Table
 export default class ChapterModel extends Model<Chapter> implements Chapter {
+  @PrimaryKey
+  @Unique
+  @Column
+  indexName!: string;
+
+  @BeforeUpdate
+  @BeforeCreate
+  static updateIndexName(instance: ChapterModel) {
+    instance.indexName = `${instance.mangaName}-${instance.chapter}`;
+  }
+
   @Column
   chapter!: string;
 

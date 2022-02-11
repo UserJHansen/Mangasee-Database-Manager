@@ -67,8 +67,8 @@ export async function MAIN() {
     Password: process.env.MANGASEE_PASSWORD,
   });
 
-  fillDiscussions(client);
-  fillManga(client);
+  await fillManga(client);
+  await fillDiscussions(client);
 }
 
 MAIN();

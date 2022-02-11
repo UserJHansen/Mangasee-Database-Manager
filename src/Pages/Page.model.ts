@@ -1,4 +1,5 @@
 import {
+  AutoIncrement,
   Column,
   ForeignKey,
   Model,
@@ -20,6 +21,7 @@ export type Page = {
 export default class PageModel extends Model<Page> implements Page {
   @PrimaryKey
   @Unique
+  @AutoIncrement
   @Column
   id!: number;
 
