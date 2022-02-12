@@ -22,7 +22,6 @@ export type Page = {
 export default class PageModel extends Model<Page> implements Page {
   @PrimaryKey
   @Unique
-  @AutoIncrement
   @Column
   indexableID!: string;
 
