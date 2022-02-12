@@ -27,6 +27,7 @@ import AlternateTitle from './AlternateTitle.model';
 export type Manga = {
   title: string;
   fullTitle: string;
+  hasRead: boolean;
   type: MangaTypeT;
   releaseYear: number;
   scanStatus: MangaStatusT;
@@ -40,12 +41,15 @@ export type Manga = {
 export default class MangaModel extends Model<Manga> implements Manga {
   @Unique
   @PrimaryKey
-@Column
+  @Column
   title!: string;
 
   @Unique
   @Column
   fullTitle!: string;
+
+  @Column
+  hasRead!: boolean;
 
   @HasMany(() => AlternateTitle)
   alternateTitles!: AlternateTitle[];

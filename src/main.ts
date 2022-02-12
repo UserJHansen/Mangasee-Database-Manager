@@ -27,6 +27,7 @@ export async function MAIN() {
   const database = new Sequelize({
     dialect: 'sqlite',
     storage: './database.sqlite',
+    logging: false,
     models: [
       Author,
       AlternateTitleModel,
@@ -62,13 +63,26 @@ export async function MAIN() {
     }),
   );
 
-  await client.post('https://mangasee123.com/auth/login.php', {
+  const loginRes = await client.post('https://mangasee123.com/auth/login.php', {
     EmailAddress: process.env.MANGASEE_USERNAME,
     Password: process.env.MANGASEE_PASSWORD,
   });
+  console.log(
+    `Login ${loginRes.data.success ? 'succeeded' : 'failed'}${
+      !loginRes.data.success ? ` with message: ${loginRes.data.val}` : ''
+    }`,
+  );
+  if (!loginRes.data.success) return false;
 
+  console.log('Filling Manga');
   await fillManga(client);
+  console.log('Filled Manga');
+
+  console.log('Filling Discussions');
   await fillDiscussions(client);
+  console.log('Filled Discussions');
+
+  return true;
 }
 
 MAIN();

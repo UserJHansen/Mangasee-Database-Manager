@@ -19,7 +19,8 @@ export type Log = {
     | 'Subscription Number Update'
     | 'Notification Pref Update'
     | 'Alternate Title Mismatch'
-    | 'New Author';
+    | 'New Author'
+    | 'Read Manga';
   value: string;
   previousValue?: string;
   targetID: string;
@@ -35,7 +36,19 @@ export default class LoggingModel extends Model<Log> implements Log {
     | 'New Reply'
     | 'Unexpected Event'
     | 'Notify Updated'
-    | 'Likes Update';
+    | 'Likes Update'
+    | 'New Chapter'
+    | 'Page Count Update'
+    | 'New Manga'
+    | 'Scan Status Changed'
+    | 'Publish Status Changed'
+    | 'Last Read Update'
+    | 'Subscription Update'
+    | 'Subscription Number Update'
+    | 'Notification Pref Update'
+    | 'Alternate Title Mismatch'
+    | 'New Author'
+    | 'Read Manga';
 
   @AllowNull(true)
   @Column

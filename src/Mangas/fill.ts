@@ -162,141 +162,165 @@ export default async function fillManga(client: AxiosInstance) {
       .data.val;
 
   for (let num = 0, l = rawData.length; num < l; num++) {
+    console.log('Filling', rawData[num].i);
     const data = rawData[num],
       rawHTML = (await client.get(`/manga/${data.i}`)).data;
-    if (FindVariable('vm.LastChapterRead', rawHTML) !== '""') {
-      const rawhtml = await client.get(
-          `/read-online/${data.i}/${chapterURLEncode(
-            FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
-          )}`,
-        ),
-        rawdata = FindVariable('vm.CHAPTERS', rawhtml.data),
-        chapters: RawChapterT[] = JSON.parse(rawdata),
-        newmanga: Manga = {
-          title: data.i,
-          fullTitle: data.s,
-          type: data.t,
-          releaseYear: parseInt(data.y),
-          scanStatus: data.ss,
-          publishStatus: data.ps,
-          lastReadID: parseInt(
-            FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
-          ),
-          isSubscribed: FindVariable('vm.Subbed', rawHTML) === 'true',
-          numSubscribed: parseInt(FindVariable('vm.NumSubs', rawHTML)),
-          shouldNotify: FindVariable('vm.Notification', rawHTML) === 'true',
-        };
+    let hasRead = FindVariable('vm.LastChapterRead', rawHTML) !== '""';
+    const newmanga: Manga = {
+      title: data.i,
+      fullTitle: data.s,
+      hasRead,
+      type: data.t,
+      releaseYear: parseInt(data.y),
+      scanStatus: data.ss,
+      publishStatus: data.ps,
+      lastReadID: hasRead
+        ? data.i +
+          '-' +
+          FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '')
+        : '',
+      isSubscribed: FindVariable('vm.Subbed', rawHTML) === 'true',
+      numSubscribed: parseInt(FindVariable('vm.NumSubs', rawHTML)),
+      shouldNotify: FindVariable('vm.Notification', rawHTML) === 'true',
+    };
 
-      const manga = await MangaModel.findByPk(data.i);
-      if (manga !== null) {
-        if (manga.scanStatus !== newmanga.scanStatus) {
-          await LoggingModel.create({
-            type: 'Scan Status Changed',
-            value: newmanga.scanStatus,
-            previousValue: manga.scanStatus,
-            targetID: data.i,
-          });
-          await manga.update({ scanStatus: newmanga.scanStatus });
-        }
-        if (manga.publishStatus !== newmanga.publishStatus) {
-          await LoggingModel.create({
-            type: 'Publish Status Changed',
-            value: newmanga.publishStatus,
-            previousValue: manga.publishStatus,
-            targetID: data.i,
-          });
-          await manga.update({ publishStatus: newmanga.publishStatus });
-        }
-
-        if (manga.lastReadID !== newmanga.lastReadID) {
-          await LoggingModel.create({
-            type: 'Last Read Update',
-            value: newmanga.lastReadID.toString(),
-            previousValue: manga.lastReadID.toString(),
-            targetID: data.i,
-          });
-          await manga.update({ lastReadID: newmanga.lastReadID });
-        }
-
-        if (manga.isSubscribed !== newmanga.isSubscribed) {
-          await LoggingModel.create({
-            type: 'Subscription Update',
-            value: newmanga.isSubscribed.toString(),
-            previousValue: manga.isSubscribed.toString(),
-            targetID: data.i,
-          });
-          await manga.update({ isSubscribed: newmanga.isSubscribed });
-        }
-
-        if (manga.numSubscribed !== newmanga.numSubscribed) {
-          await LoggingModel.create({
-            type: 'Subscription Number Update',
-            value: newmanga.numSubscribed.toString(),
-            previousValue: manga.numSubscribed.toString(),
-            targetID: data.i,
-          });
-          await manga.update({ numSubscribed: newmanga.numSubscribed });
-        }
-
-        if (manga.shouldNotify !== newmanga.shouldNotify) {
-          await LoggingModel.create({
-            type: 'Notification Pref Update',
-            value: newmanga.shouldNotify.toString(),
-            previousValue: manga.shouldNotify.toString(),
-            targetID: data.i,
-          });
-          await manga.update({ shouldNotify: newmanga.shouldNotify });
-        }
-
-        if (
-          manga.type !== newmanga.type ||
-          manga.releaseYear !== newmanga.releaseYear ||
-          manga.shouldNotify !== newmanga.shouldNotify
-        ) {
-          await LoggingModel.create({
-            type: 'Unexpected Event',
-            value: JSON.stringify(newmanga),
-            previousValue: JSON.stringify(manga),
-            targetID: manga.title,
-          });
-        }
-      } else {
-        await MangaModel.create(newmanga);
-        if (!quietCreate) {
-          await LoggingModel.create({
-            type: 'New Manga',
-            value: JSON.stringify(newmanga),
-            targetID: newmanga.title,
-          });
-        }
+    const manga = await MangaModel.findByPk(data.i);
+    if (manga !== null) {
+      if (newmanga.hasRead && !manga.hasRead) {
+        await LoggingModel.create({
+          type: 'Read Manga',
+          value: newmanga.title,
+          targetID: newmanga.title,
+        });
+        hasRead = true;
+        await manga.update({ hasRead });
       }
 
-      await extractComments(client, data.i, quietCreate);
-
-      for (let i = 0, l = data.al.length; i < l; i++) {
-        const alternateName = data.al[i],
-          alternate = await AlternateTitleModel.findByPk(alternateName);
-
-        if (alternate !== null) {
-          if (alternate.manga !== newmanga.title) {
-            await LoggingModel.create({
-              type: 'Alternate Title Mismatch',
-              value: alternateName,
-              previousValue: alternate.manga,
-              targetID: alternate.id.toString(),
-            });
-            await alternate.update({ manga: newmanga.title });
-          }
-        }
+      if (manga.scanStatus !== newmanga.scanStatus) {
+        await LoggingModel.create({
+          type: 'Scan Status Changed',
+          value: newmanga.scanStatus,
+          previousValue: manga.scanStatus,
+          targetID: data.i,
+        });
+        await manga.update({ scanStatus: newmanga.scanStatus });
+      }
+      if (manga.publishStatus !== newmanga.publishStatus) {
+        await LoggingModel.create({
+          type: 'Publish Status Changed',
+          value: newmanga.publishStatus,
+          previousValue: manga.publishStatus,
+          targetID: data.i,
+        });
+        await manga.update({ publishStatus: newmanga.publishStatus });
       }
 
+      if (manga.lastReadID !== newmanga.lastReadID) {
+        await LoggingModel.create({
+          type: 'Last Read Update',
+          value: newmanga.lastReadID.toString(),
+          previousValue: manga.lastReadID.toString(),
+          targetID: data.i,
+        });
+        await manga.update({ lastReadID: newmanga.lastReadID });
+      }
+
+      if (manga.isSubscribed !== newmanga.isSubscribed) {
+        await LoggingModel.create({
+          type: 'Subscription Update',
+          value: newmanga.isSubscribed.toString(),
+          previousValue: manga.isSubscribed.toString(),
+          targetID: data.i,
+        });
+        await manga.update({ isSubscribed: newmanga.isSubscribed });
+      }
+
+      if (manga.numSubscribed !== newmanga.numSubscribed) {
+        await LoggingModel.create({
+          type: 'Subscription Number Update',
+          value: newmanga.numSubscribed.toString(),
+          previousValue: manga.numSubscribed.toString(),
+          targetID: data.i,
+        });
+        await manga.update({ numSubscribed: newmanga.numSubscribed });
+      }
+
+      if (manga.shouldNotify !== newmanga.shouldNotify) {
+        await LoggingModel.create({
+          type: 'Notification Pref Update',
+          value: newmanga.shouldNotify.toString(),
+          previousValue: manga.shouldNotify.toString(),
+          targetID: data.i,
+        });
+        await manga.update({ shouldNotify: newmanga.shouldNotify });
+      }
+
+      if (
+        manga.type !== newmanga.type ||
+        manga.releaseYear !== newmanga.releaseYear ||
+        manga.shouldNotify !== newmanga.shouldNotify
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: JSON.stringify(newmanga),
+          previousValue: JSON.stringify(manga),
+          targetID: manga.title,
+        });
+      }
+    } else {
+      await MangaModel.create(newmanga);
+      if (!quietCreate) {
+        await LoggingModel.create({
+          type: 'New Manga',
+          value: JSON.stringify(newmanga),
+          targetID: newmanga.title,
+        });
+      }
+    }
+
+    const input = hasRead
+      ? FindVariable(
+          'vm.CHAPTERS',
+          (
+            await client.get(
+              `/read-online/${data.i}${chapterURLEncode(
+                FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
+              )}`,
+            )
+          ).data,
+        )
+      : FindVariable('vm.Chapters', rawHTML);
+
+    const chapters: RawChapterT[] = JSON.parse(input);
+
+    await extractComments(client, data.i, quietCreate);
+
+    for (let i = 0, l = data.al.length; i < l; i++) {
+      const alternateName = data.al[i],
+        alternate = await AlternateTitleModel.findByPk(alternateName);
+
+      if (alternate !== null) {
+        if (alternate.manga !== newmanga.title) {
+          await LoggingModel.create({
+            type: 'Alternate Title Mismatch',
+            value: alternateName,
+            previousValue: alternate.manga,
+            targetID: alternate.id.toString(),
+          });
+          await alternate.update({ manga: newmanga.title });
+        }
+      }
+    }
+
+    if (!hasRead) console.log('Manga Unread, skipping pages -', data.i);
+    else {
       let i = chapters.length;
       for (i; i; i--) {
         const chap = chapters[i - 1],
           newchapter: Chapter = {
             chapter: parseInt(chap.Chapter),
             type: chap.Type,
-            directory: chap.Directory,
+            directory: chap.Directory || 'Unread',
             chapterName: chap.ChapterName ?? '',
             mangaName: data.i,
             isBookmarked: bookmarked.some(
@@ -313,7 +337,7 @@ export default async function fillManga(client: AxiosInstance) {
 
         if (chapter !== null) {
           if (
-            parseInt(chap.Page) !==
+            parseInt(chap.Page || '0') !==
             (await PageModel.count({
               where: {
                 chapter: newchapter.chapter,
@@ -323,7 +347,7 @@ export default async function fillManga(client: AxiosInstance) {
           ) {
             await LoggingModel.create({
               type: 'Page Count Update',
-              value: chap.Page,
+              value: chap.Page || '0',
               previousValue: (
                 await PageModel.count({
                   where: {
@@ -359,7 +383,18 @@ export default async function fillManga(client: AxiosInstance) {
               targetID: data.i,
             });
 
-          for (let index = 1, l = parseInt(chap.Page); index - 1 < l; index++) {
+          for (
+            let index =
+                (await PageModel.count({
+                  where: {
+                    chapter: newchapter.chapter,
+                    mangaName: newchapter.mangaName,
+                  },
+                })) + 1,
+              l = parseInt(chap.Page || '0');
+            index - 1 < l;
+            index++
+          ) {
             await PageModel.create({
               chapter: newchapter.mangaName + '-' + newchapter.chapter,
               mangaName: newchapter.mangaName,
@@ -374,14 +409,14 @@ export default async function fillManga(client: AxiosInstance) {
           }
         }
       }
-
-      data.a.forEach((author) => {
-        authors.set(author, [...(authors.get(author) || []), data.i]);
-      });
-      data.g.forEach((genre) => {
-        genres.set(genre, [...(genres.get(genre) || []), data.i]);
-      });
     }
+
+    data.a.forEach((author) => {
+      authors.set(author, [...(authors.get(author) || []), data.i]);
+    });
+    data.g.forEach((genre) => {
+      genres.set(genre, [...(genres.get(genre) || []), data.i]);
+    });
   }
 
   for (const [authorName, mangas] of authors) {

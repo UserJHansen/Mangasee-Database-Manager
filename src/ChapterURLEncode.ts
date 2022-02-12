@@ -6,5 +6,5 @@ export default function chapterURLEncode(e: string) {
     a = e[e.length - 1];
   let m = '';
 
-  return '0' != a && (m = '.' + a), '-chapter-' + n + m + Index + '.html';
+  return '0' !== a && (m = '.' + a), '-chapter-' + n + m + Index + '.html';
 }

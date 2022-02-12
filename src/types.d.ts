@@ -136,8 +136,8 @@ export type RawMangaT = {
 export type RawChapterT = {
   Chapter: string;
   Type: string;
-  Page: string;
-  Directory: string;
+  Page?: string;
+  Directory?: string;
   Date: string;
   ChapterName: string | null;
 };
