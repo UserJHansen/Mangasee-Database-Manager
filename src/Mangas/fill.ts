@@ -317,6 +317,17 @@ export default async function fillManga(client: AxiosInstance) {
           });
           await alternate.update({ manga: newmanga.title });
         }
+      } else {
+        await AlternateTitleModel.create({
+          title: alternateName,
+          manga: newmanga.title,
+        });
+        if (!quietCreate)
+          await LoggingModel.create({
+            type: 'New Alternate Title',
+            value: alternateName,
+            targetID: alternateName,
+          });
       }
     }
 
@@ -348,7 +359,7 @@ export default async function fillManga(client: AxiosInstance) {
             parseInt(chap.Page || '0') !==
             (await PageModel.count({
               where: {
-                chapter: newchapter.chapter,
+                chapter: newchapter.mangaName + '-' + newchapter.chapter,
                 mangaName: newchapter.mangaName,
               },
             }))
@@ -359,7 +370,7 @@ export default async function fillManga(client: AxiosInstance) {
               previousValue: (
                 await PageModel.count({
                   where: {
-                    chapter: newchapter.chapter,
+                    chapter: newchapter.mangaName + '-' + newchapter.chapter,
                     mangaName: newchapter.mangaName,
                   },
                 })
@@ -395,7 +406,7 @@ export default async function fillManga(client: AxiosInstance) {
             let index =
                 (await PageModel.count({
                   where: {
-                    chapter: newchapter.chapter,
+                    chapter: newchapter.mangaName + '-' + newchapter.chapter,
                     mangaName: newchapter.mangaName,
                   },
                 })) + 1,

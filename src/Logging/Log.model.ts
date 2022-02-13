@@ -20,7 +20,8 @@ export type Log = {
     | 'Notification Pref Update'
     | 'Alternate Title Mismatch'
     | 'New Author'
-    | 'Read Manga';
+    | 'Read Manga'
+    | 'New Alternate Title';
   value: string;
   previousValue?: string;
   targetID: string;
@@ -48,7 +49,8 @@ export default class LoggingModel extends Model<Log> implements Log {
     | 'Notification Pref Update'
     | 'Alternate Title Mismatch'
     | 'New Author'
-    | 'Read Manga';
+    | 'Read Manga'
+    | 'New Alternate Title';
 
   @AllowNull(true)
   @Column
