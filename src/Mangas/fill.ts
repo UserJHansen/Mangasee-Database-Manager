@@ -279,7 +279,15 @@ export default async function fillManga(client: AxiosInstance) {
     }
 
     const input = hasRead
-      ? FindVariable(
+      ? (console.log(
+          'get',
+          `/read-online/${data.i}${chapterURLEncode(
+            FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
+          )}`,
+          'from chapter',
+          FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
+        ),
+        FindVariable(
           'vm.CHAPTERS',
           (
             await client.get(
@@ -288,7 +296,7 @@ export default async function fillManga(client: AxiosInstance) {
               )}`,
             )
           ).data,
-        )
+        ))
       : FindVariable('vm.Chapters', rawHTML);
 
     const chapters: RawChapterT[] = JSON.parse(input);

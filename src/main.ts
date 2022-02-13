@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 import { Sequelize } from 'sequelize-typescript';
@@ -63,10 +63,19 @@ export async function MAIN() {
     }),
   );
 
-  const loginRes = await client.post('https://mangasee123.com/auth/login.php', {
-    EmailAddress: process.env.MANGASEE_USERNAME,
-    Password: process.env.MANGASEE_PASSWORD,
-  });
+  let loginRes:
+    | AxiosResponse
+    | { data: { success: false; val: 'Connection Timed out' } } = {
+    data: { success: false, val: 'Connection Timed out' },
+  };
+  try {
+    loginRes = await client.post('https://mangasee123.com/auth/login.php', {
+      EmailAddress: process.env.MANGASEE_USERNAME,
+      Password: process.env.MANGASEE_PASSWORD,
+    });
+  } catch (e) {
+    console.error(e);
+  }
   console.log(
     `Login ${loginRes.data.success ? 'succeeded' : 'failed'}${
       !loginRes.data.success ? ` with message: ${loginRes.data.val}` : ''
