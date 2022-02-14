@@ -23,7 +23,7 @@ import MangaComment from './Mangas/Comments/Comment.model';
 import MangaReply from './Mangas/Replies/Reply.model';
 import fillManga from './Mangas/fill';
 
-export async function MAIN() {
+export async function MAIN(safemode: boolean) {
   const database = new Sequelize({
     dialect: 'sqlite',
     storage: './database.sqlite',
@@ -84,7 +84,7 @@ export async function MAIN() {
   if (!loginRes.data.success) return false;
 
   console.log('Filling Manga');
-  await fillManga(client);
+  await fillManga(client, safemode);
   console.log('Filled Manga');
 
   console.log('Filling Discussions');
@@ -94,4 +94,4 @@ export async function MAIN() {
   return true;
 }
 
-MAIN();
+MAIN(process.env.SAFE?.toLocaleLowerCase() !== 'false');

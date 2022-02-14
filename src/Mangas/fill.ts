@@ -152,7 +152,10 @@ async function extractComments(
   }
 }
 
-export default async function fillManga(client: AxiosInstance) {
+export default async function fillManga(
+  client: AxiosInstance,
+  safemode: boolean,
+) {
   const quietCreate = !(await MangaModel.findOne());
 
   const rawData = (await client.get('/search/search.php')).data as RawMangaT[],
@@ -164,9 +167,17 @@ export default async function fillManga(client: AxiosInstance) {
   for (let num = 0, l = rawData.length; num < l; num++) {
     console.log('Filling', rawData[num].i);
     const data = rawData[num],
-      rawHTML = (await client.get(`/manga/${data.i}`)).data;
+      rawHTML = (await client.get(`/manga/${data.i}`)).data,
+      lastChapterRead =
+        FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '') !== ''
+          ? FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '')
+          : safemode
+          ? ''
+          : (JSON.parse(FindVariable('vm.Chapters', rawHTML)) as RawChapterT[])[
+              JSON.parse(FindVariable('vm.Chapters', rawHTML)).length - 1
+            ].Chapter;
     if (FindVariable('vm.LastChapterRead', rawHTML) === '') continue;
-    let hasRead = FindVariable('vm.LastChapterRead', rawHTML) !== '""';
+    let hasRead = lastChapterRead !== '' || !safemode;
     const newmanga: Manga = {
       title: data.i,
       fullTitle: data.s,
@@ -175,11 +186,7 @@ export default async function fillManga(client: AxiosInstance) {
       releaseYear: parseInt(data.y),
       scanStatus: data.ss,
       publishStatus: data.ps,
-      lastReadID: hasRead
-        ? data.i +
-          '-' +
-          FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '')
-        : '',
+      lastReadID: hasRead ? data.i + '-' + lastChapterRead : '',
       isSubscribed: FindVariable('vm.Subbed', rawHTML) === 'true',
       numSubscribed: parseInt(FindVariable('vm.NumSubs', rawHTML)),
       shouldNotify: FindVariable('vm.Notification', rawHTML) === 'true',
@@ -288,22 +295,15 @@ export default async function fillManga(client: AxiosInstance) {
         hasRead
           ? (console.log(
               'get',
-              `/read-online/${data.i}${chapterURLEncode(
-                FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
-              )}`,
+              `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
               'from chapter',
-              FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
+              lastChapterRead,
             ),
             FindVariable(
               'vm.CHAPTERS',
               (
                 await client.get(
-                  `/read-online/${data.i}${chapterURLEncode(
-                    FindVariable('vm.LastChapterRead', rawHTML).replace(
-                      /"/g,
-                      '',
-                    ),
-                  )}`,
+                  `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
                 )
               ).data,
             ))
