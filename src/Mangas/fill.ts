@@ -165,6 +165,7 @@ export default async function fillManga(client: AxiosInstance) {
     console.log('Filling', rawData[num].i);
     const data = rawData[num],
       rawHTML = (await client.get(`/manga/${data.i}`)).data;
+    if (FindVariable('vm.LastChapterRead', rawHTML) === '') continue;
     let hasRead = FindVariable('vm.LastChapterRead', rawHTML) !== '""';
     const newmanga: Manga = {
       title: data.i,
@@ -278,28 +279,41 @@ export default async function fillManga(client: AxiosInstance) {
       }
     }
 
-    const input = hasRead
-      ? (console.log(
-          'get',
-          `/read-online/${data.i}${chapterURLEncode(
-            FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
-          )}`,
-          'from chapter',
-          FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
-        ),
-        FindVariable(
-          'vm.CHAPTERS',
-          (
-            await client.get(
+    let chapters: RawChapterT[] = JSON.parse(
+      FindVariable('vm.Chapters', rawHTML),
+    );
+
+    try {
+      chapters = JSON.parse(
+        hasRead
+          ? (console.log(
+              'get',
               `/read-online/${data.i}${chapterURLEncode(
                 FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
               )}`,
-            )
-          ).data,
-        ))
-      : FindVariable('vm.Chapters', rawHTML);
-
-    const chapters: RawChapterT[] = JSON.parse(input);
+              'from chapter',
+              FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, ''),
+            ),
+            FindVariable(
+              'vm.CHAPTERS',
+              (
+                await client.get(
+                  `/read-online/${data.i}${chapterURLEncode(
+                    FindVariable('vm.LastChapterRead', rawHTML).replace(
+                      /"/g,
+                      '',
+                    ),
+                  )}`,
+                )
+              ).data,
+            ))
+          : FindVariable('vm.Chapters', rawHTML),
+      );
+    } catch (e) {
+      hasRead = false;
+      console.log(e);
+      console.log('invalid chapter');
+    }
 
     await extractComments(client, data.i, quietCreate);
 
