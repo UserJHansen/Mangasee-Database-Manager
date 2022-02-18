@@ -6,6 +6,7 @@
     "node": ">= 16.13 <17"
   },
   "devDependencies": {
+    "@types/cli-progress": "^3.9.2",
     "@types/node": "~16.11.6",
     "@types/tough-cookie": "^4.0.1",
     "@types/validator": "^13.7.1",
@@ -29,8 +30,10 @@
   "author": "James Hansen",
   "license": "MIT",
   "dependencies": {
+    "async-parallel": "^1.2.3",
     "axios": "^0.25.0",
     "axios-cookiejar-support": "^2.0.3",
+    "cli-progress": "^3.10.0",
     "dotenv": "^14.2.0",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.13.0",

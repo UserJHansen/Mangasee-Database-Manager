@@ -1,5 +1,9 @@
 import { AxiosInstance } from 'axios';
 
+import { invoke } from 'async-parallel';
+import { SingleBar } from 'cli-progress';
+import { setTimeout } from 'timers/promises';
+
 import MangaModel from './Manga.model';
 import AuthorModel from '../Authors/Author.model';
 import AuthorLink from '../Authors/AuthorLink.model';
@@ -13,16 +17,36 @@ import fillIndividual from './fillIndividual';
 export default async function fillManga(
   client: AxiosInstance,
   safemode: boolean,
+  verbose: boolean,
 ) {
   const quietCreate = !(await MangaModel.findOne());
 
-  const rawData = (await client.get('/search/search.php')).data as RawMangaT[],
-    authors = new Map<string, string[]>(),
-    genres = new Map<GenreT, string[]>(),
-    bookmarked: RawBookmarkT[] = (await client.get(`/user/bookmark.get.php`))
-      .data.val;
+  let rawData: RawMangaT[] | null = null;
+  while (rawData === null) {
+    try {
+      rawData = (await client.get('/search/search.php')).data;
+    } catch (err) {
+      console.log('failed to get list of manga, retrying: ', err.message);
+      await setTimeout(1000);
+    }
+  }
+  rawData = rawData as RawMangaT[];
 
-  console.log(await client.get('/search/search.php'));
+  const authors = new Map<string, string[]>(),
+    genres = new Map<GenreT, string[]>();
+
+  let bookmarked: RawBookmarkT[] | null = null;
+  while (bookmarked === null) {
+    try {
+      bookmarked = (await client.get(`/user/bookmark.get.php`)).data.val;
+    } catch (err) {
+      console.log(
+        'failed to get list of bookmarked manga, retrying: ',
+        err.message,
+      );
+      await setTimeout(1000);
+    }
+  }
 
   rawData.forEach((rawManga) => {
     rawManga.a.forEach((author) => {
@@ -33,23 +57,30 @@ export default async function fillManga(
     });
   });
 
-  let bottom = 0;
-  while (bottom < rawData.length) {
-    const tasks: Promise<void>[] = [];
-    for (let num = 0, l = rawData.splice(bottom, 100).length; num < l; num++) {
-      tasks.push(
-        fillIndividual(
-          rawData.splice(bottom, 100)[num],
-          quietCreate,
-          safemode,
-          bookmarked,
-          client,
-        ),
+  const tasks: (() => Promise<void>)[] = [],
+    progress = new SingleBar({
+      format: ' {bar} {percentage}% | ETA: {eta_formatted} | {value}/{total}',
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      etaBuffer: 100,
+      forceRedraw: true,
+    });
+  progress.start(rawData.length, 0);
+  let completed = 0;
+  for (let num = 0, l = rawData.length; num < l; num++) {
+    tasks.push(async () => {
+      await fillIndividual(
+        rawData?.[num] as RawMangaT,
+        quietCreate,
+        safemode,
+        verbose,
+        bookmarked as RawBookmarkT[],
+        client,
       );
-    }
-    await Promise.all(tasks);
-    bottom += 100;
+      progress.update(++completed);
+    });
   }
+  await invoke(tasks, 500);
 
   for (const [authorName, mangas] of authors) {
     const author = await AuthorModel.findByPk(authorName),

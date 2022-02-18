@@ -23,7 +23,7 @@ import MangaComment from './Mangas/Comments/Comment.model';
 import MangaReply from './Mangas/Replies/Reply.model';
 import fillManga from './Mangas/fill';
 
-export async function MAIN(safemode: boolean) {
+export async function MAIN(safemode: boolean, verbose: boolean) {
   const database = new Sequelize({
     dialect: 'sqlite',
     storage: './database.sqlite',
@@ -48,7 +48,7 @@ export async function MAIN(safemode: boolean) {
   });
   try {
     await database.authenticate();
-    console.log('Connection has been established successfully.');
+    verbose && console.log('Connection has been established successfully.');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
@@ -76,6 +76,7 @@ export async function MAIN(safemode: boolean) {
   } catch (e) {
     console.error(e);
   }
+
   console.log(
     `Login ${loginRes.data.success ? 'succeeded' : 'failed'}${
       !loginRes.data.success ? ` with message: ${loginRes.data.val}` : ''
@@ -84,7 +85,7 @@ export async function MAIN(safemode: boolean) {
   if (!loginRes.data.success) return false;
 
   console.log('Filling Manga');
-  await fillManga(client, safemode);
+  await fillManga(client, safemode, verbose);
   console.log('Filled Manga');
 
   console.log('Filling Discussions');
@@ -94,4 +95,7 @@ export async function MAIN(safemode: boolean) {
   return true;
 }
 
-MAIN(process.env.SAFE?.toLocaleLowerCase() !== 'false');
+MAIN(
+  process.env.SAFE?.toLocaleLowerCase() !== 'false',
+  process.env.VERBOSE?.toLocaleLowerCase() === 'true',
+);

@@ -1,4 +1,6 @@
 import { AxiosInstance } from 'axios';
+import { setTimeout } from 'timers/promises';
+
 import AdjustedDate from '../AdjustedDate';
 import ChapterModel, { Chapter } from '../Chapters/Chapter.model';
 import chapterURLEncode from '../ChapterURLEncode';
@@ -14,19 +16,30 @@ export default async function fillIndividual(
   data: RawMangaT,
   quietCreate: boolean,
   safemode: boolean,
+  verbose: boolean,
   bookmarked: RawBookmarkT[],
   client: AxiosInstance,
 ) {
-  console.log('Filling', data.i);
-  const rawHTML = (await client.get(`/manga/${data.i}`)).data,
-    lastChapterRead =
-      FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '') !== ''
-        ? FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '')
-        : safemode
-        ? ''
-        : (JSON.parse(FindVariable('vm.Chapters', rawHTML)) as RawChapterT[])[
-            JSON.parse(FindVariable('vm.Chapters', rawHTML)).length - 1
-          ].Chapter;
+  verbose && console.log('Filling', data.i);
+  let rawHTML: string | null = null;
+
+  while (rawHTML === null) {
+    try {
+      rawHTML = (await client.get(`/manga/${data.i}`)).data;
+    } catch (err) {
+      console.log('failed to get html, retrying: ', err.message);
+      await setTimeout(1000);
+    }
+  }
+
+  const lastChapterRead =
+    FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '') !== ''
+      ? FindVariable('vm.LastChapterRead', rawHTML).replace(/"/g, '')
+      : safemode
+      ? ''
+      : (JSON.parse(FindVariable('vm.Chapters', rawHTML)) as RawChapterT[])[
+          JSON.parse(FindVariable('vm.Chapters', rawHTML)).length - 1
+        ].Chapter;
   if (FindVariable('vm.LastChapterRead', rawHTML) === '') return;
   let hasRead = lastChapterRead !== '' || !safemode;
   const newmanga: Manga = {
@@ -142,28 +155,46 @@ export default async function fillIndividual(
   );
 
   try {
+    verbose &&
+      console.log(
+        'get',
+        `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
+        'from chapter',
+        lastChapterRead,
+      );
     chapters = JSON.parse(
       hasRead
-        ? (console.log(
-            'get',
-            `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
-            'from chapter',
-            lastChapterRead,
-          ),
-          FindVariable(
+        ? FindVariable(
             'vm.CHAPTERS',
-            (
-              await client.get(
-                `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
-              )
-            ).data,
-          ))
+            await (async () => {
+              let result: string | null = null;
+
+              while (result === null) {
+                try {
+                  result = (
+                    await client.get(
+                      `/read-online/${data.i}${chapterURLEncode(
+                        lastChapterRead,
+                      )}`,
+                    )
+                  ).data;
+                } catch (err) {
+                  console.log(
+                    'failed to get chapters, retrying: ',
+                    err.message,
+                  );
+                  await setTimeout(1000);
+                }
+              }
+              return result;
+            })(),
+          )
         : FindVariable('vm.Chapters', rawHTML),
     );
   } catch (e) {
     hasRead = false;
-    console.log(e);
-    console.log('invalid chapter');
+    verbose && console.error(e);
+    console.log('invalid chapter: ', data, ', message: ', e.message);
   }
 
   await extractComments(client, data.i, quietCreate);
@@ -196,7 +227,8 @@ export default async function fillIndividual(
     }
   }
 
-  if (!hasRead) console.log('Manga Unread, skipping pages -', data.i);
+  if (!hasRead)
+    verbose && console.log('Manga Unread, skipping pages -', data.i);
   else {
     let i = chapters.length;
     for (i; i; i--) {

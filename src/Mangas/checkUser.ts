@@ -15,6 +15,11 @@ export default async function checkUser(userDetails: User) {
       await user.update({ username });
     }
   } else {
-    await UserModel.create(userDetails);
+    try {
+      await UserModel.create(userDetails);
+    } catch (e) {
+      console.error(e);
+      console.log('failed on user', userDetails);
+    }
   }
 }

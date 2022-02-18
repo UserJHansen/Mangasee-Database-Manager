@@ -1,4 +1,6 @@
 import { AxiosInstance } from 'axios';
+import { setTimeout } from 'timers/promises';
+
 import AdjustedDate from '../AdjustedDate';
 import LoggingModel from '../Logging/Log.model';
 import { RawMangaCommentT } from '../types';
@@ -11,9 +13,17 @@ export default async function extractComments(
   name: string,
   quietCreate: boolean,
 ) {
-  const rawData = (
-    await client.post('/manga/comment.get.php', { IndexName: name })
-  ).data.val as RawMangaCommentT[];
+  let rawData: RawMangaCommentT[] | null = null;
+  while (rawData === null) {
+    try {
+      rawData = (
+        await client.post('/manga/comment.get.php', { IndexName: name })
+      ).data.val;
+    } catch (error) {
+      console.log('Getting Comments failed, retrying', error.message);
+      await setTimeout(1000);
+    }
+  }
 
   for (const key in rawData) {
     const rawComment = rawData[key];
