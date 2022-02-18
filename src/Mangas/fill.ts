@@ -68,7 +68,7 @@ export default async function fillManga(
   progress.start(rawData.length, 0);
   let completed = 0;
   for (let num = 0, l = rawData.length; num < l; num++) {
-    tasks.push(async () => {
+    tasks[num] = async () => {
       await fillIndividual(
         rawData?.[num] as RawMangaT,
         quietCreate,
@@ -78,7 +78,8 @@ export default async function fillManga(
         client,
       );
       progress.update(++completed);
-    });
+      delete rawData?.[num];
+    };
   }
   await invoke(tasks, 500);
 
