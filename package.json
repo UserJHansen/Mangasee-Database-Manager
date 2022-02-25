@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "A tool to create a database based on the Mangasee Website",
   "engines": {
-    "node": ">= 16.13 <17"
+    "node": ">=17.6"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.9.2",
@@ -43,6 +43,6 @@
     "tslib": "~2.3.1"
   },
   "volta": {
-    "node": "16.13.0"
+    "node": "17.6.0"
   }
 }

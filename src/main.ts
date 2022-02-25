@@ -60,6 +60,7 @@ export async function MAIN(safemode: boolean, verbose: boolean) {
       jar,
       withCredentials: true,
       baseURL: 'https://mangasee123.com/',
+      timeout: 5000,
     }),
   );
 

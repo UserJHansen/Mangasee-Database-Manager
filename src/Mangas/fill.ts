@@ -134,7 +134,7 @@ export default async function fillManga(
     }
 
     for (const manga of mangas) {
-      if (!links.some((link) => link.mangaName === manga)) {
+      if (links.every((link) => link.mangaName !== manga)) {
         await GenreLinkModel.create({
           genre: genreName,
           mangaName: manga,
