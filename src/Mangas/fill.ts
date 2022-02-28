@@ -1,7 +1,8 @@
 import { AxiosInstance } from 'axios';
 
-import { invoke } from 'async-parallel';
+// import { invoke } from 'async-parallel';
 import { SingleBar } from 'cli-progress';
+import { spawn, Pool, Worker, FunctionThread } from 'threads';
 import { setTimeout } from 'timers/promises';
 
 import MangaModel from './Manga.model';
@@ -12,7 +13,9 @@ import GenreLinkModel from '../Genres/GenreLink.model';
 import LoggingModel from '../Logging/Log.model';
 
 import { GenreT, RawBookmarkT, RawMangaT } from '../types.d';
-import fillIndividual from './fillIndividual';
+// import fillIndividual from './fillIndividual';
+import { runInWorker } from '../workerSetup';
+import { QueuedTask } from 'threads/dist/master/pool-types';
 
 export default async function fillManga(
   client: AxiosInstance,
@@ -57,31 +60,60 @@ export default async function fillManga(
     });
   });
 
-  const tasks: (() => Promise<void>)[] = [],
-    progress = new SingleBar({
-      format: ' {bar} {percentage}% | ETA: {eta_formatted} | {value}/{total}',
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      etaBuffer: 100,
-      forceRedraw: true,
-    });
+  // const tasks: (() => Promise<void>)[] = [],
+  const progress = new SingleBar({
+    format: ' {bar} {percentage}% | ETA: {eta_formatted} | {value}/{total}',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    etaBuffer: 100,
+    forceRedraw: true,
+  });
   progress.start(rawData.length, 0);
-  let completed = 0;
+  // let completed = 0;
+  const pool = Pool(() => spawn<runInWorker>(new Worker('../workerSetup'))),
+    tasks: QueuedTask<
+      FunctionThread<
+        [
+          manga: RawMangaT,
+          quietCreate: boolean,
+          safemode: boolean,
+          verbose: boolean,
+          bookmarked: RawBookmarkT[],
+          json: string,
+        ],
+        void
+      >,
+      void
+    >[] = [];
+
   for (let num = 0, l = rawData.length; num < l; num++) {
-    tasks[num] = async () => {
-      await fillIndividual(
-        rawData?.[num] as RawMangaT,
-        quietCreate,
-        safemode,
-        verbose,
-        bookmarked as RawBookmarkT[],
-        client,
-      );
-      progress.update(++completed);
-      delete rawData?.[num];
-    };
+    // tasks[num] = async () => {
+    tasks.push(
+      pool.queue((worker) =>
+        worker(
+          rawData?.[num] as RawMangaT,
+          quietCreate,
+          safemode,
+          verbose,
+          bookmarked as RawBookmarkT[],
+          JSON.stringify(client.defaults.jar?.toJSON?.()),
+        ),
+      ),
+    );
+    // await fillIndividual(
+    //   rawData?.[num] as RawMangaT,
+    //   quietCreate,
+    //   safemode,
+    //   verbose,
+    //   bookmarked as RawBookmarkT[],
+    //   client,
+    // );
+    // progress.update(++completed);
+    // delete rawData?.[num];
+    // };
   }
-  await invoke(tasks, 500);
+  await Promise.all(tasks);
+  // await invoke(tasks, 500);
 
   for (const [authorName, mangas] of authors) {
     const author = await AuthorModel.findByPk(authorName),
