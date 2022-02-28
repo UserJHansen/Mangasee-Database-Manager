@@ -155,40 +155,32 @@ export default async function fillIndividual(
   );
 
   try {
-    verbose &&
-      console.log(
-        'get',
-        `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
-        'from chapter',
-        lastChapterRead,
-      );
+    let result = '';
+    if (hasRead) {
+      if (verbose)
+        console.log(
+          'get',
+          `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
+          'from chapter',
+          lastChapterRead,
+        );
+
+      while (result === '') {
+        try {
+          result = (
+            await client.get(
+              `/read-online/${data.i}${chapterURLEncode(lastChapterRead)}`,
+            )
+          ).data;
+        } catch (err) {
+          console.log('failed to get chapters, retrying: ', err.message);
+          await setTimeout(1000);
+        }
+      }
+    }
     chapters = JSON.parse(
       hasRead
-        ? FindVariable(
-            'vm.CHAPTERS',
-            await (async () => {
-              let result: string | null = null;
-
-              while (result === null) {
-                try {
-                  result = (
-                    await client.get(
-                      `/read-online/${data.i}${chapterURLEncode(
-                        lastChapterRead,
-                      )}`,
-                    )
-                  ).data;
-                } catch (err) {
-                  console.log(
-                    'failed to get chapters, retrying: ',
-                    err.message,
-                  );
-                  await setTimeout(1000);
-                }
-              }
-              return result;
-            })(),
-          )
+        ? FindVariable('vm.CHAPTERS', result)
         : FindVariable('vm.Chapters', rawHTML),
     );
   } catch (e) {
