@@ -37,7 +37,7 @@ export type runInWorker = (
   const database = new Sequelize({
     dialect: 'sqlite',
     storage: './database.sqlite',
-    logging: console.log,
+    logging: false,
     models: [
       Author,
       AlternateTitleModel,

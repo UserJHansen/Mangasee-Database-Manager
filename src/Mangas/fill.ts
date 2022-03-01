@@ -1,6 +1,5 @@
 import { AxiosInstance } from 'axios';
 
-// import { invoke } from 'async-parallel';
 import { SingleBar } from 'cli-progress';
 import { spawn, Pool, Worker, FunctionThread } from 'threads';
 import { setTimeout } from 'timers/promises';
@@ -13,7 +12,6 @@ import GenreLinkModel from '../Genres/GenreLink.model';
 import LoggingModel from '../Logging/Log.model';
 
 import { GenreT, RawBookmarkT, RawMangaT } from '../types.d';
-// import fillIndividual from './fillIndividual';
 import { runInWorker } from '../workerSetup';
 import { QueuedTask } from 'threads/dist/master/pool-types';
 
@@ -60,7 +58,6 @@ export default async function fillManga(
     });
   });
 
-  // const tasks: (() => Promise<void>)[] = [],
   const progress = new SingleBar({
     format: ' {bar} {percentage}% | ETA: {eta_formatted} | {value}/{total}',
     barCompleteChar: '\u2588',
@@ -69,7 +66,7 @@ export default async function fillManga(
     forceRedraw: true,
   });
   progress.start(rawData.length, 0);
-  // let completed = 0;
+  let completed = 0;
   const pool = Pool(() => spawn<runInWorker>(new Worker('../workerSetup'))),
     tasks: QueuedTask<
       FunctionThread<
@@ -87,33 +84,24 @@ export default async function fillManga(
     >[] = [];
 
   for (let num = 0, l = rawData.length; num < l; num++) {
-    // tasks[num] = async () => {
     tasks.push(
-      pool.queue((worker) =>
-        worker(
+      pool.queue((worker) => {
+        return worker(
           rawData?.[num] as RawMangaT,
           quietCreate,
           safemode,
           verbose,
           bookmarked as RawBookmarkT[],
           JSON.stringify(client.defaults.jar?.toJSON?.()),
-        ),
-      ),
+        ).then(() => {
+          progress.update(++completed);
+          delete rawData?.[num];
+        });
+      }),
     );
-    // await fillIndividual(
-    //   rawData?.[num] as RawMangaT,
-    //   quietCreate,
-    //   safemode,
-    //   verbose,
-    //   bookmarked as RawBookmarkT[],
-    //   client,
-    // );
-    // progress.update(++completed);
-    // delete rawData?.[num];
-    // };
   }
-  await Promise.all(tasks);
-  // await invoke(tasks, 500);
+  await pool.completed();
+  await pool.terminate();
 
   for (const [authorName, mangas] of authors) {
     const author = await AuthorModel.findByPk(authorName),
