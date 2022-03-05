@@ -67,7 +67,13 @@ export default async function fillManga(
   });
   progress.start(rawData.length, 0);
   let completed = 0;
-  const pool = Pool(() => spawn<runInWorker>(new Worker('../workerSetup'))),
+  const pool = Pool(() =>
+      spawn<runInWorker>(
+        new Worker('../workerSetup', {
+          workerData: JSON.stringify(client.defaults.jar?.toJSON?.()),
+        }),
+      ),
+    ),
     tasks: QueuedTask<
       FunctionThread<
         [
@@ -92,7 +98,6 @@ export default async function fillManga(
           safemode,
           verbose,
           bookmarked as RawBookmarkT[],
-          JSON.stringify(client.defaults.jar?.toJSON?.()),
         ).then(() => {
           progress.update(++completed);
           delete rawData?.[num];

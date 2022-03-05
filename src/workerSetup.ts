@@ -23,6 +23,7 @@ import MangaComment from './Mangas/Comments/Comment.model';
 import MangaReply from './Mangas/Replies/Reply.model';
 import { RawBookmarkT, RawMangaT } from './types';
 import fillIndividual from './Mangas/fillIndividual';
+import { workerData } from 'worker_threads';
 
 export type runInWorker = (
   manga: RawMangaT,
@@ -30,7 +31,6 @@ export type runInWorker = (
   safemode: boolean,
   verbose: boolean,
   bookmarked: RawBookmarkT[],
-  json: string,
 ) => Promise<void>;
 
 (async () => {
@@ -65,23 +65,14 @@ export type runInWorker = (
 
   const client = wrapper(
     axios.create({
+      jar: CookieJar.deserializeSync(workerData),
       withCredentials: true,
       baseURL: 'https://mangasee123.com/',
       timeout: 5000,
     }),
   );
 
-  expose(((manga, quietCreate, safemode, verbose, bookmarked, json) => {
-    const jar = CookieJar.deserializeSync(json);
-    client.defaults.jar = jar;
-
-    return fillIndividual(
-      manga,
-      quietCreate,
-      safemode,
-      verbose,
-      bookmarked,
-      client,
-    );
+  expose(((...args) => {
+    return fillIndividual(...args, client);
   }) as runInWorker);
 })();

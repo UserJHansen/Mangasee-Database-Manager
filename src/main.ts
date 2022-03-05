@@ -1,8 +1,5 @@
-import axios, { AxiosResponse } from 'axios';
 import 'dotenv/config';
-import { wrapper } from 'axios-cookiejar-support';
 import { Sequelize } from 'sequelize-typescript';
-import { CookieJar } from 'tough-cookie';
 import Author from './Authors/Author.model';
 import AuthorLink from './Authors/AuthorLink.model';
 import Chapter from './Chapters/Chapter.model';
@@ -20,6 +17,7 @@ import MangaComment from './Mangas/Comments/Comment.model';
 import MangaReply from './Mangas/Replies/Reply.model';
 import fillDiscussions from './Discussions/fill';
 import fillManga from './Mangas/fill';
+import generateClient, { ENV } from './generateClient';
 
 async function main() {
   const safemode = process.env.SAFE?.toLocaleLowerCase() !== 'false',
@@ -55,36 +53,19 @@ async function main() {
   }
   database.sync();
 
-  const jar = new CookieJar();
-  const client = wrapper(
-    axios.create({
-      jar,
-      withCredentials: true,
-      baseURL: 'https://mangasee123.com/',
-      timeout: 5000,
-    }),
-  );
-
-  let loginRes:
-    | AxiosResponse
-    | { data: { success: false; val: 'Connection Timed out' } } = {
-    data: { success: false, val: 'Connection Timed out' },
-  };
-  try {
-    loginRes = await client.post('https://mangasee123.com/auth/login.php', {
-      EmailAddress: process.env.MANGASEE_USERNAME,
-      Password: process.env.MANGASEE_PASSWORD,
-    });
-  } catch (e) {
-    console.error(e);
+  if (
+    typeof process.env.MANGASEE_USERNAME !== 'string' ||
+    typeof process.env.MANGASEE_PASSWORD !== 'string'
+  ) {
+    console.error(
+      'Please set MANGASEE_USERNAME and MANGASEE_PASSWORD in your .env file.',
+    );
+    return;
   }
 
-  console.log(
-    `Login ${loginRes.data.success ? 'succeeded' : 'failed'}${
-      !loginRes.data.success ? ` with message: ${loginRes.data.val}` : ''
-    }`,
-  );
-  if (loginRes.data.success) {
+  const [success, client] = await generateClient(process.env as ENV);
+
+  if (success) {
     console.log('Filling Manga');
     await fillManga(client, safemode, verbose);
     console.log('Filled Manga');
