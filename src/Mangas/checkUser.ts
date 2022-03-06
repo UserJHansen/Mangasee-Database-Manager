@@ -18,8 +18,9 @@ export default async function checkUser(userDetails: User) {
     try {
       await UserModel.create(userDetails);
     } catch (e) {
-      console.error(e);
-      console.log('failed on user', userDetails);
+      // console.error(e);
+      // console.log('failed on user', userDetails, ', retrying');
+      checkUser(userDetails);
     }
   }
 }
