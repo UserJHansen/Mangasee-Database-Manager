@@ -1,25 +1,39 @@
 import { AxiosInstance } from 'axios';
 import { setTimeout } from 'timers/promises';
 
-import AdjustedDate from '../AdjustedDate';
-import ChapterModel, { Chapter } from '../Chapters/Chapter.model';
-import chapterURLEncode from '../ChapterURLEncode';
-import { FindVariable } from '../getJsVar';
-import LoggingModel from '../Logging/Log.model';
-import PageModel from '../Pages/Page.model';
-import { RawBookmarkT, RawChapterT, RawMangaT } from '../types';
-import AlternateTitleModel from './AlternateTitle.model';
+import AdjustedDate from './utils/AdjustedDate';
+import ChapterModel, { Chapter } from './Models/Chapters/Chapter.model';
+import chapterURLEncode from './utils/ChapterURLEncode';
+import { FindVariable } from './utils/getJsVar';
+import LoggingModel from './Models/Logging/Log.model';
+import PageModel from './Models/Pages/Page.model';
+import { RawBookmarkT, RawChapterT, RawMangaT } from './utils/types';
+import AlternateTitleModel from './Models/Mangas/AlternateTitle.model';
 import extractComments from './extractComments';
-import MangaModel, { Manga } from './Manga.model';
+import MangaModel, { Manga } from './Models/Mangas/Manga.model';
 
-export default async function fillIndividual(
-  data: RawMangaT,
+export default async function fillManga(
+  data: RawMangaT | RawMangaT[],
   quietCreate: boolean,
   safemode: boolean,
   verbose: boolean,
   bookmarked: RawBookmarkT[],
   client: AxiosInstance,
 ) {
+  if (Array.isArray(data)) {
+    for (const manga of data) {
+      await fillManga(
+        manga,
+        quietCreate,
+        safemode,
+        verbose,
+        bookmarked,
+        client,
+      );
+    }
+    return;
+  }
+
   verbose && console.log('Filling', data.i);
   let rawHTML: string | null = null;
 
@@ -73,7 +87,7 @@ export default async function fillIndividual(
         type: 'Scan Status Changed',
         value: newmanga.scanStatus,
         previousValue: manga.scanStatus,
-        targetID: data.i,
+        targetID: newmanga.title,
       });
       await manga.update({ scanStatus: newmanga.scanStatus });
     }
@@ -82,7 +96,7 @@ export default async function fillIndividual(
         type: 'Publish Status Changed',
         value: newmanga.publishStatus,
         previousValue: manga.publishStatus,
-        targetID: data.i,
+        targetID: newmanga.title,
       });
       await manga.update({ publishStatus: newmanga.publishStatus });
     }
@@ -238,10 +252,11 @@ export default async function fillIndividual(
               bookmark.IndexName === data.i,
           ),
           releaseDate: new AdjustedDate(chap.Date),
-        },
-        chapter = await ChapterModel.findByPk(
-          newchapter.mangaName + '-' + newchapter.chapter,
-        );
+        };
+
+      const chapter = await ChapterModel.findByPk(
+        newchapter.mangaName + '-' + newchapter.chapter,
+      );
 
       if (chapter !== null) {
         if (
@@ -290,31 +305,31 @@ export default async function fillIndividual(
             value: JSON.stringify(newchapter),
             targetID: data.i,
           });
+      }
 
-        for (
-          let index =
-              (await PageModel.count({
-                where: {
-                  chapter: newchapter.mangaName + '-' + newchapter.chapter,
-                  mangaName: newchapter.mangaName,
-                },
-              })) + 1,
-            l = parseInt(chap.Page || '0');
-          index - 1 < l;
-          index++
-        ) {
-          await PageModel.create({
-            chapter: newchapter.mangaName + '-' + newchapter.chapter,
-            mangaName: newchapter.mangaName,
-            pageNum: index,
-            isBookmarked: bookmarked.some(
-              (bookmark) =>
-                bookmark.Page === index.toString() &&
-                bookmark.Chapter === chap.Chapter &&
-                bookmark.IndexName === data.i,
-            ),
-          });
-        }
+      for (
+        let index =
+            (await PageModel.count({
+              where: {
+                chapter: newchapter.mangaName + '-' + newchapter.chapter,
+                mangaName: newchapter.mangaName,
+              },
+            })) + 1,
+          l = parseInt(chap.Page || '0');
+        index - 1 < l;
+        index++
+      ) {
+        await PageModel.create({
+          chapter: newchapter.mangaName + '-' + newchapter.chapter,
+          mangaName: newchapter.mangaName,
+          pageNum: index,
+          isBookmarked: bookmarked.some(
+            (bookmark) =>
+              bookmark.Page === index.toString() &&
+              bookmark.Chapter === chap.Chapter &&
+              bookmark.IndexName === data.i,
+          ),
+        });
       }
     }
   }

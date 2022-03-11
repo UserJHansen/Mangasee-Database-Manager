@@ -1,15 +1,22 @@
-import { AxiosInstance } from 'axios';
-import AdjustedDate from '../AdjustedDate';
-import LoggingModel from '../Logging/Log.model';
-import { RawDiscussionT, RawPostT } from '../types.d';
-import User from '../Users/User.model';
-import DiscussionComment, { Comment } from './Comments/Comment.model';
-import DiscussionModel, { Discussion } from './Discussion.model';
-import DiscussionReply, { Reply } from './Replies/Reply.model';
+import AdjustedDate from '../../utils/AdjustedDate';
+import LoggingModel from '../../Models/Logging/Log.model';
+import { RawDiscussionT, RawPostT } from '../../utils/types';
+import User from '../../Models/Users/User.model';
+import DiscussionComment, {
+  Comment,
+} from '../../Models/Discussions/Comments/Comment.model';
+import DiscussionModel, {
+  Discussion,
+} from '../../Models/Discussions/Discussion.model';
+import DiscussionReply, {
+  Reply,
+} from '../../Models/Discussions/Replies/Reply.model';
+import ClientController from '../../utils/ClientController';
+import { workerData } from 'worker_threads';
 
-export default async function fillDiscussions(client: AxiosInstance) {
-  const quietCreate = !(await DiscussionModel.findOne());
+const client = ClientController.parseClient(workerData);
 
+(async function () {
   const rawData = (await client.get('/discussion/index.get.php')).data
       .val as RawDiscussionT[],
     users = new Map<string, number>(),
@@ -26,7 +33,8 @@ export default async function fillDiscussions(client: AxiosInstance) {
       };
     }),
     comments = new Map<number, Comment>(),
-    replies = new Map<number, Reply>();
+    replies = new Map<number, Reply>(),
+    quietCreate = (await DiscussionModel.count()) > rawData.length * (7 / 8);
 
   for (const Discussion of parsedData) {
     const post = (
@@ -190,4 +198,4 @@ export default async function fillDiscussions(client: AxiosInstance) {
       }
     }
   }
-}
+})();

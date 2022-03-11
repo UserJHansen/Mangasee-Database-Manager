@@ -1,6 +1,6 @@
 import { Column, ForeignKey, Model, Table } from 'sequelize-typescript';
 import Manga from '../Mangas/Manga.model';
-import { GenreT } from '../types.d';
+import { GenreT } from '../../utils/types';
 import Genre from './Genre.model';
 
 export type GenreLink = {

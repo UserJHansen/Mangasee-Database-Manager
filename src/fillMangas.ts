@@ -4,15 +4,15 @@ import { SingleBar } from 'cli-progress';
 import { spawn, Pool, Worker, FunctionThread } from 'threads';
 import { setTimeout } from 'timers/promises';
 
-import MangaModel from './Manga.model';
-import AuthorModel from '../Authors/Author.model';
-import AuthorLink from '../Authors/AuthorLink.model';
-import GenreModel from '../Genres/Genre.model';
-import GenreLinkModel from '../Genres/GenreLink.model';
-import LoggingModel from '../Logging/Log.model';
+import MangaModel from './Models/Mangas/Manga.model';
+import AuthorModel from './Models/Authors/Author.model';
+import AuthorLink from './Models/Authors/AuthorLink.model';
+import GenreModel from './Models/Genres/Genre.model';
+import GenreLinkModel from './Models/Genres/GenreLink.model';
+import LoggingModel from './Models/Logging/Log.model';
 
-import { GenreT, RawBookmarkT, RawMangaT } from '../types.d';
-import { runInWorker } from '../workerSetup';
+import { GenreT, RawBookmarkT, RawMangaT } from './utils/types';
+import { runInWorker } from './workerSetup';
 import { QueuedTask } from 'threads/dist/master/pool-types';
 
 export default async function fillManga(

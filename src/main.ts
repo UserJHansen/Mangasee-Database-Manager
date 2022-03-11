@@ -1,50 +1,15 @@
 import 'dotenv/config';
 import { Sequelize } from 'sequelize-typescript';
-import Author from './Authors/Author.model';
-import AuthorLink from './Authors/AuthorLink.model';
-import Chapter from './Chapters/Chapter.model';
-import DiscussionComment from './Discussions/Comments/Comment.model';
-import Discussion from './Discussions/Discussion.model';
-import DiscussionReply from './Discussions/Replies/Reply.model';
-import Genre from './Genres/Genre.model';
-import GenreLink from './Genres/GenreLink.model';
-import Manga from './Mangas/Manga.model';
-import Page from './Pages/Page.model';
-import User from './Users/User.model';
-import LoggingModel from './Logging/Log.model';
-import AlternateTitleModel from './Mangas/AlternateTitle.model';
-import MangaComment from './Mangas/Comments/Comment.model';
-import MangaReply from './Mangas/Replies/Reply.model';
-import fillDiscussions from './Discussions/fill';
-import fillManga from './Mangas/fill';
-import generateClient, { ENV } from './generateClient';
+// import fillDiscussions from './workerTree/Discussions/discussionsWorker';
+import fillManga from './fillMangas';
+import clientController, { ENV } from './utils/ClientController';
+import { defaultSqliteSettings } from './utils/defaultSettings';
 
 async function main() {
   const safemode = process.env.SAFE?.toLocaleLowerCase() !== 'false',
     verbose = process.env.VERBOSE?.toLocaleLowerCase() === 'true';
 
-  const database = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite',
-    logging: false,
-    models: [
-      Author,
-      AlternateTitleModel,
-      AuthorLink,
-      GenreLink,
-      Chapter,
-      DiscussionComment,
-      DiscussionReply,
-      Discussion,
-      Genre,
-      Manga,
-      MangaComment,
-      MangaReply,
-      Page,
-      User,
-      LoggingModel,
-    ],
-  });
+  const database = new Sequelize(defaultSqliteSettings);
   try {
     await database.authenticate();
     verbose && console.log('Connection has been established successfully.');
@@ -63,7 +28,9 @@ async function main() {
     return;
   }
 
-  const [success, client] = await generateClient(process.env as ENV);
+  const [success, client] = await clientController.generateClient(
+    process.env as ENV,
+  );
 
   if (success) {
     console.log('Filling Manga');
@@ -71,7 +38,7 @@ async function main() {
     console.log('Filled Manga');
 
     console.log('Filling Discussions');
-    await fillDiscussions(client);
+    // await fillDiscussions(client);
     console.log('Filled Discussions');
   }
 }

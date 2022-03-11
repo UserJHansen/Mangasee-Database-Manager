@@ -1,12 +1,12 @@
 import { AxiosInstance } from 'axios';
 import { setTimeout } from 'timers/promises';
 
-import AdjustedDate from '../AdjustedDate';
-import LoggingModel from '../Logging/Log.model';
-import { RawMangaCommentT } from '../types';
-import checkUser from './checkUser';
-import MangaComment, { Comment } from './Comments/Comment.model';
-import MangaReply, { Reply } from './Replies/Reply.model';
+import AdjustedDate from './utils/AdjustedDate';
+import LoggingModel from './Models/Logging/Log.model';
+import { RawMangaCommentT } from './utils/types';
+import MangaComment, { Comment } from './Models/Mangas/Comments/Comment.model';
+import MangaReply, { Reply } from './Models/Mangas/Replies/Reply.model';
+import UserModel from './Models/Users/User.model';
 
 export default async function extractComments(
   client: AxiosInstance,
@@ -38,7 +38,7 @@ export default async function extractComments(
       timestamp: new AdjustedDate(rawComment.TimeCommented),
       mangaName: name,
     };
-    await checkUser({
+    await UserModel.checkUser({
       id: parseInt(rawComment.UserID),
       username: rawComment.Username,
     });
@@ -94,7 +94,7 @@ export default async function extractComments(
           timestamp: new AdjustedDate(rawComment.Replies[i].TimeCommented),
           commentID: parseInt(rawComment.CommentID),
         };
-      await checkUser({
+      await UserModel.checkUser({
         id: parseInt(rawComment.Replies[i].UserID),
         username: rawComment.Replies[i].Username,
       });

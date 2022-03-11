@@ -21,5 +21,7 @@ export default class AuthorModel extends Model<Author> implements Author {
   name!: string;
 
   @BelongsToMany(() => Manga, () => AuthorLink)
-  manga!: Manga[];
+  manga!: (Manga & { AuthorLink: AuthorLink })[];
+
+  // async updateWithLog(author: Author) {}
 }

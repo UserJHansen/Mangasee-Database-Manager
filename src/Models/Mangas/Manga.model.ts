@@ -21,7 +21,7 @@ import MangaComment from './Comments/Comment.model';
 import Genre from '../Genres/Genre.model';
 import GenreLink from '../Genres/GenreLink.model';
 
-import { MangaStatusT, MangaTypeT } from '../types.d';
+import { MangaStatusT, MangaTypeT } from '../../utils/types';
 import AlternateTitle from './AlternateTitle.model';
 
 export type Manga = {
@@ -55,10 +55,10 @@ export default class MangaModel extends Model<Manga> implements Manga {
   alternateTitles!: AlternateTitle[];
 
   @BelongsToMany(() => Author, () => AuthorLink)
-  authors!: Author[];
+  authors!: (Author & { AuthorLink: AuthorLink })[];
 
   @BelongsToMany(() => Genre, () => GenreLink)
-  genres!: Genre[];
+  genres!: (Genre & { GenreLink: GenreLink })[];
 
   @Column
   type!: MangaTypeT;

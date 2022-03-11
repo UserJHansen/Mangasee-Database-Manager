@@ -8,7 +8,7 @@ import {
 } from 'sequelize-typescript';
 
 import Manga from '../Mangas/Manga.model';
-import { GenreT } from '../types.d';
+import { GenreT } from '../../utils/types';
 import GenreLink from './GenreLink.model';
 
 export type Genre = {
@@ -23,5 +23,5 @@ export default class GenreModel extends Model<Genre> implements Genre {
   genre!: GenreT;
 
   @BelongsToMany(() => Manga, () => GenreLink)
-  manga!: Manga[];
+  manga!: (Manga & { GenreLink: GenreLink })[];
 }
