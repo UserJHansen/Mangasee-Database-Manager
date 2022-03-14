@@ -1,170 +1,172 @@
-import { AxiosInstance } from 'axios';
+// This is all obselete now with the new worker system, should be removed soon
 
-import { SingleBar } from 'cli-progress';
-import { spawn, Pool, Worker, FunctionThread } from 'threads';
-import { setTimeout } from 'timers/promises';
+// import { AxiosInstance } from 'axios';
 
-import MangaModel from './Models/Mangas/Manga.model';
-import AuthorModel from './Models/Authors/Author.model';
-import AuthorLink from './Models/Authors/AuthorLink.model';
-import GenreModel from './Models/Genres/Genre.model';
-import GenreLinkModel from './Models/Genres/GenreLink.model';
-import LoggingModel from './Models/Logging/Log.model';
+// import { SingleBar } from 'cli-progress';
+// import { spawn, Pool, Worker, FunctionThread } from 'threads';
+// import { setTimeout } from 'timers/promises';
 
-import { GenreT, RawBookmarkT, RawMangaT } from './utils/types';
-import { runInWorker } from './workerSetup';
-import { QueuedTask } from 'threads/dist/master/pool-types';
+// import MangaModel from './Models/Mangas/Manga.model';
+// import AuthorModel from './Models/Authors/Author.model';
+// import AuthorLink from './Models/Authors/AuthorLink.model';
+// import GenreModel from './Models/Genres/Genre.model';
+// import GenreLinkModel from './Models/Genres/GenreLink.model';
+// import LoggingModel from './Models/Logging/Log.model';
 
-export default async function fillManga(
-  client: AxiosInstance,
-  safemode: boolean,
-  verbose: boolean,
-) {
-  const quietCreate = !(await MangaModel.findOne());
+// import { GenreT, RawBookmarkT, RawMangaT } from './utils/types';
+// import { QueuedTask } from 'threads/dist/master/pool-types';
+// import { runInWorker } from './workerTree/Manga/mangaWorker';
 
-  let rawData: RawMangaT[] | null = null;
-  while (rawData === null) {
-    try {
-      rawData = (await client.get('/search/search.php')).data;
-    } catch (err) {
-      console.log('failed to get list of manga, retrying: ', err.message);
-      await setTimeout(1000);
-    }
-  }
-  rawData = rawData as RawMangaT[];
+// export default async function fillManga(
+//   client: AxiosInstance,
+//   safemode: boolean,
+//   verbose: boolean,
+// ) {
+//   const quietCreate = !(await MangaModel.findOne());
 
-  const authors = new Map<string, string[]>(),
-    genres = new Map<GenreT, string[]>();
+//   let rawData: RawMangaT[] | null = null;
+//   while (rawData === null) {
+//     try {
+//       rawData = (await client.get('/search/search.php')).data;
+//     } catch (err) {
+//       console.log('failed to get list of manga, retrying: ', err.message);
+//       await setTimeout(1000);
+//     }
+//   }
+//   rawData = rawData as RawMangaT[];
 
-  let bookmarked: RawBookmarkT[] | null = null;
-  while (bookmarked === null) {
-    try {
-      bookmarked = (await client.get(`/user/bookmark.get.php`)).data.val;
-    } catch (err) {
-      console.log(
-        'failed to get list of bookmarked manga, retrying: ',
-        err.message,
-      );
-      await setTimeout(1000);
-    }
-  }
+//   const authors = new Map<string, string[]>(),
+//     genres = new Map<GenreT, string[]>();
 
-  rawData.forEach((rawManga) => {
-    rawManga.a.forEach((author) => {
-      authors.set(author, [...(authors.get(author) || []), rawManga.i]);
-    });
-    rawManga.g.forEach((genre) => {
-      genres.set(genre, [...(genres.get(genre) || []), rawManga.i]);
-    });
-  });
+//   let bookmarked: RawBookmarkT[] | null = null;
+//   while (bookmarked === null) {
+//     try {
+//       bookmarked = (await client.get(`/user/bookmark.get.php`)).data.val;
+//     } catch (err) {
+//       console.log(
+//         'failed to get list of bookmarked manga, retrying: ',
+//         err.message,
+//       );
+//       await setTimeout(1000);
+//     }
+//   }
 
-  const progress = new SingleBar({
-    format: ' {bar} {percentage}% | ETA: {eta_formatted} | {value}/{total}',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    etaBuffer: 100,
-    forceRedraw: true,
-  });
-  progress.start(rawData.length, 0);
-  let completed = 0;
-  const pool = Pool(() =>
-      spawn<runInWorker>(
-        new Worker('../workerSetup', {
-          workerData: JSON.stringify(client.defaults.jar?.toJSON?.()),
-        }),
-      ),
-    ),
-    tasks: QueuedTask<
-      FunctionThread<
-        [
-          manga: RawMangaT,
-          quietCreate: boolean,
-          safemode: boolean,
-          verbose: boolean,
-          bookmarked: RawBookmarkT[],
-          json: string,
-        ],
-        void
-      >,
-      void
-    >[] = [];
+//   rawData.forEach((rawManga) => {
+//     rawManga.a.forEach((author) => {
+//       authors.set(author, [...(authors.get(author) || []), rawManga.i]);
+//     });
+//     rawManga.g.forEach((genre) => {
+//       genres.set(genre, [...(genres.get(genre) || []), rawManga.i]);
+//     });
+//   });
 
-  for (let num = 0, l = rawData.length; num < l; num++) {
-    tasks.push(
-      pool.queue((worker) => {
-        return worker(
-          rawData?.[num] as RawMangaT,
-          quietCreate,
-          safemode,
-          verbose,
-          bookmarked as RawBookmarkT[],
-        ).then(() => {
-          progress.update(++completed);
-          delete rawData?.[num];
-        });
-      }),
-    );
-  }
-  await pool.completed();
-  await pool.terminate();
+//   const progress = new SingleBar({
+//     format: ' {bar} {percentage}% | ETA: {eta_formatted} | {value}/{total}',
+//     barCompleteChar: '\u2588',
+//     barIncompleteChar: '\u2591',
+//     etaBuffer: 100,
+//     forceRedraw: true,
+//   });
+//   progress.start(rawData.length, 0);
+//   let completed = 0;
+//   const pool = Pool(() =>
+//       spawn<runInWorker>(
+//         new Worker('../workerSetup', {
+//           workerData: JSON.stringify(client.defaults.jar?.toJSON?.()),
+//         }),
+//       ),
+//     ),
+//     tasks: QueuedTask<
+//       FunctionThread<
+//         [
+//           manga: RawMangaT,
+//           quietCreate: boolean,
+//           safemode: boolean,
+//           verbose: boolean,
+//           bookmarked: RawBookmarkT[],
+//           json: string,
+//         ],
+//         void
+//       >,
+//       void
+//     >[] = [];
 
-  for (const [authorName, mangas] of authors) {
-    const author = await AuthorModel.findByPk(authorName),
-      links = await AuthorLink.findAll({
-        where: {
-          authorName,
-        },
-      });
+//   for (let num = 0, l = rawData.length; num < l; num++) {
+//     tasks.push(
+//       pool.queue((worker) => {
+//         return worker(
+//           rawData?.[num] as RawMangaT,
+//           quietCreate,
+//           safemode,
+//           verbose,
+//           bookmarked as RawBookmarkT[],
+//         ).then(() => {
+//           progress.update(++completed);
+//           delete rawData?.[num];
+//         });
+//       }),
+//     );
+//   }
+//   await pool.completed();
+//   await pool.terminate();
 
-    if (author === null) {
-      await AuthorModel.create({
-        name: authorName,
-      });
-      if (!quietCreate)
-        await LoggingModel.create({
-          type: 'New Author',
-          value: authorName,
-          targetID: authorName,
-        });
-    }
+//   for (const [authorName, mangas] of authors) {
+//     const author = await AuthorModel.findByPk(authorName),
+//       links = await AuthorLink.findAll({
+//         where: {
+//           authorName,
+//         },
+//       });
 
-    for (const manga of mangas) {
-      if (!links.some((link) => link.mangaName === manga)) {
-        await AuthorLink.create({
-          authorName,
-          mangaName: manga,
-        });
-      }
-    }
-  }
+//     if (author === null) {
+//       await AuthorModel.create({
+//         name: authorName,
+//       });
+//       if (!quietCreate)
+//         await LoggingModel.create({
+//           type: 'New Author',
+//           value: authorName,
+//           targetID: authorName,
+//         });
+//     }
 
-  for (const [genreName, mangas] of genres) {
-    const genre = await GenreModel.findByPk(genreName),
-      links = await GenreLinkModel.findAll({
-        where: {
-          genre: genreName,
-        },
-      });
+//     for (const manga of mangas) {
+//       if (!links.some((link) => link.mangaName === manga)) {
+//         await AuthorLink.create({
+//           authorName,
+//           mangaName: manga,
+//         });
+//       }
+//     }
+//   }
 
-    if (genre === null) {
-      await GenreModel.create({
-        genre: genreName,
-      });
-      if (!quietCreate)
-        await LoggingModel.create({
-          type: 'New Author',
-          value: genreName,
-          targetID: genreName,
-        });
-    }
+//   for (const [genreName, mangas] of genres) {
+//     const genre = await GenreModel.findByPk(genreName),
+//       links = await GenreLinkModel.findAll({
+//         where: {
+//           genre: genreName,
+//         },
+//       });
 
-    for (const manga of mangas) {
-      if (links.every((link) => link.mangaName !== manga)) {
-        await GenreLinkModel.create({
-          genre: genreName,
-          mangaName: manga,
-        });
-      }
-    }
-  }
-}
+//     if (genre === null) {
+//       await GenreModel.create({
+//         genre: genreName,
+//       });
+//       if (!quietCreate)
+//         await LoggingModel.create({
+//           type: 'New Author',
+//           value: genreName,
+//           targetID: genreName,
+//         });
+//     }
+
+//     for (const manga of mangas) {
+//       if (links.every((link) => link.mangaName !== manga)) {
+//         await GenreLinkModel.create({
+//           genre: genreName,
+//           mangaName: manga,
+//         });
+//       }
+//     }
+//   }
+// }

@@ -42,5 +42,5 @@ export const defaultSqliteSettings: SequelizeOptions = {
 export const defaultClientSettings: AxiosRequestConfig = {
   withCredentials: true,
   baseURL: 'https://mangasee123.com/',
-  timeout: 5000,
+  timeout: 20000,
 };

@@ -5,44 +5,55 @@ import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
 import { expose } from 'threads/worker';
 
 import { workerData } from 'worker_threads';
-import { FunctionThread, ModuleThread, Pool, spawn } from 'threads';
-import { runInWorker } from '../workerSetup';
+import { ModuleThread, spawn, Worker } from 'threads';
 import ClientController from '../utils/ClientController';
 import { defaultSqliteSettings } from '../utils/defaultSettings';
 import { controller } from './workerTypes';
 
-export class BackgroundRunner implements controller {
+export class backgroundController implements controller<backgroundController> {
   running = false;
   database: Sequelize;
   client: Axios;
-  discussionWorker: ModuleThread<controller>;
-  mangaWorker: ModuleThread<controller>;
+  discussionWorker: ModuleThread<controller<backgroundController>>;
+  mangaWorker: ModuleThread<controller<backgroundController>>;
 
-  constructor(client: Axios) {
+  private constructor(
+    client: Axios,
+    discussionWorker: ModuleThread<controller<backgroundController>>,
+    mangaWorker: ModuleThread<controller<backgroundController>>,
+  ) {
     this.client = client;
+    this.discussionWorker = discussionWorker;
+    this.mangaWorker = mangaWorker;
+  }
 
-    return Promise.resolve(async () => {
-      this.discussionWorker() = await spawn<controller>(
+  static async generate(client: Axios) {
+    const discussionWorker = await spawn<controller<backgroundController>>(
         new Worker('./Discussions/discussionsWorker', {
-          workerData: workerENV,
+          workerData,
+        }),
+      ),
+      mangaWorker = await spawn<controller<backgroundController>>(
+        new Worker('./Manga/mangaWorker', {
+          workerData,
         }),
       );
 
-      return this;
-    });
+    return new backgroundController(client, discussionWorker, mangaWorker);
   }
 
   connect(options: SequelizeOptions) {
-    return new Promise((resolve, reject) => {
+    return new Promise<backgroundController>((resolve, reject) => {
       this.database = new Sequelize(options);
 
       try {
-        this.database.authenticate().then(resolve);
+        this.database.authenticate().then(() => resolve(this));
       } catch (error) {
         reject(error);
       }
     });
   }
+
   start() {
     this.running = true;
 
@@ -58,8 +69,10 @@ export class BackgroundRunner implements controller {
   }
 }
 
-const worker = new BackgroundRunner(ClientController.parseClient(workerData));
+backgroundController
+  .generate(ClientController.parseClient(workerData.client))
+  .then((worker) => worker.connect(defaultSqliteSettings))
+  .then((worker) =>
+    expose({ start: worker.start, stop: worker.stop, connect: worker.connect }),
+  );
 
-worker.connect(defaultSqliteSettings);
-
-expose({ start: worker.start, stop: worker.stop });

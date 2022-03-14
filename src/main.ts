@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 import { spawn, Worker } from 'threads';
 import clientController, { ENV } from './utils/ClientController';
+import { backgroundController } from './workerTree/backgroundWorkerController';
 import { controller, workerENV } from './workerTree/workerTypes';
 
 async function main() {
@@ -23,7 +24,7 @@ async function main() {
   );
 
   if (success) {
-    const worker = await spawn<controller>(
+    const worker = await spawn<controller<backgroundController>>(
       new Worker('./workerTree/backgroundWorkerController', {
         workerData: {
           client: JSON.stringify(client.defaults.jar?.toJSON?.()),
