@@ -8,6 +8,7 @@ import {
   Table,
   Unique,
 } from 'sequelize-typescript';
+import LoggingModel from '../../Logging/Log.model';
 
 import User from '../../Users/User.model';
 import Comment from '../Comments/Comment.model';
@@ -22,6 +23,33 @@ export type Reply = {
 
 @Table
 export default class DiscussionReply extends Model<Reply> implements Reply {
+  static async updateWithLog(newReply: Reply, verbose = false) {
+    const reply = await DiscussionReply.findByPk(newReply.id);
+    if (reply === null) {
+      if (verbose)
+        await LoggingModel.create({
+          type: 'New Reply',
+          value: newReply.content,
+          targetID: newReply.id.toString(),
+        });
+      await DiscussionReply.create(newReply);
+    } else {
+      if (
+        newReply.commentID !== reply.commentID ||
+        newReply.userID !== reply.userID ||
+        newReply.timestamp.toLocaleString() !==
+          reply.timestamp.toLocaleString() ||
+        newReply.content !== reply.content
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: 'Reply Changed',
+          targetID: newReply.id.toString(),
+        });
+      }
+    }
+  }
+
   @Unique
   @PrimaryKey
   @Column

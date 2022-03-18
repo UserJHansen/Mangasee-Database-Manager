@@ -5,7 +5,7 @@ Background Worker Main/
 ├─ Manga Thread/
 │  ├─ Main Thread - Listener/Manager
 │  ├─ Worker Threads/
-│  │  ├─ Read Manga Worker - 1/8
+│  │  ├─ Read Manga Worker / Notifications - 1/8
 │  │  ├─ Sole subscription Worker - 1/8
 |  |  ├─ Genre similar Worker - 1/4
 |  |  ├─ Random Progression - 1/2

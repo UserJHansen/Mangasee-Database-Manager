@@ -47,7 +47,10 @@ export class backgroundController implements controller<backgroundController> {
       this.database = new Sequelize(options);
 
       try {
-        this.database.authenticate().then(() => resolve(this));
+        this.database
+          .authenticate()
+          .then(() => this.database.sync())
+          .then(() => resolve(this));
       } catch (error) {
         reject(error);
       }
