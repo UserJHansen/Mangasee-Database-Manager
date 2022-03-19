@@ -6,14 +6,12 @@ import DiscussionReply from '../../Models/Discussions/Replies/Reply.model';
 import ClientController from '../../utils/ClientController';
 import { workerData } from 'worker_threads';
 import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
-import { defaultSqliteSettings } from '../../utils/defaultSettings';
-import { expose } from 'threads';
-import { controller } from '../workerTypes';
 import { Axios } from 'axios';
+import EventEmitter from 'events';
 
 const client = ClientController.parseClient(workerData.client);
 
-export class discussionController implements controller<discussionController> {
+export class discussionController extends EventEmitter {
   running = false;
   interval = 0;
   timer: NodeJS.Timer;
@@ -21,13 +19,11 @@ export class discussionController implements controller<discussionController> {
   database: Sequelize;
   client: Axios;
 
-  private constructor(client: Axios, interval: number) {
+  constructor(client: Axios, interval: number) {
+    super();
+
     this.client = client;
     this.interval = interval;
-  }
-
-  static async generate(client: Axios, interval: number) {
-    return new discussionController(client, interval);
   }
 
   connect(options: SequelizeOptions) {
@@ -122,9 +118,8 @@ export class discussionController implements controller<discussionController> {
   }
 }
 
-discussionController
-  .generate(ClientController.parseClient(workerData.client), 1000)
-  .then((worker) => worker.connect(defaultSqliteSettings))
-  .then((worker) =>
-    expose({ start: worker.start, stop: worker.stop, connect: worker.connect }),
-  );
+// new discussionController(ClientController.parseClient(workerData.client), 1000)
+//   .then((worker) => worker.connect(defaultSqliteSettings))
+//   .then((worker) =>
+//     expose({ start: worker.start, stop: worker.stop, connect: worker.connect }),
+//   );

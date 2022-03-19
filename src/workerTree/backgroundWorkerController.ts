@@ -2,45 +2,50 @@ import 'dotenv/config';
 
 import { Axios } from 'axios';
 import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
-import { expose } from 'threads/worker';
 
-import { workerData } from 'worker_threads';
-import { ModuleThread, spawn, Worker } from 'threads';
+import { ThreadedClass, threadedClass } from 'threadedclass';
+import { discussionController } from './Discussions/discussionsWorker';
+import { mangaController } from './Manga/mangaWorker';
 import ClientController from '../utils/ClientController';
-import { defaultSqliteSettings } from '../utils/defaultSettings';
-import { controller } from './workerTypes';
+import EventEmitter from 'events';
 
-export class backgroundController implements controller<backgroundController> {
+export class backgroundController extends EventEmitter {
   running = false;
+  safeMode = true;
+  verbose = false;
+
   database: Sequelize;
   client: Axios;
-  discussionWorker: ModuleThread<controller<backgroundController>>;
-  mangaWorker: ModuleThread<controller<backgroundController>>;
+  discussionWorker: ThreadedClass<discussionController>;
+  mangaWorker: ThreadedClass<mangaController>;
 
-  private constructor(
-    client: Axios,
-    discussionWorker: ModuleThread<controller<backgroundController>>,
-    mangaWorker: ModuleThread<controller<backgroundController>>,
+  constructor(
+    client: string,
+    safeMode: boolean,
+    verbose: boolean,
   ) {
-    this.client = client;
-    this.discussionWorker = discussionWorker;
-    this.mangaWorker = mangaWorker;
+    super()
+
+    this.client = ClientController.parseClient(client);
+    this.safeMode = safeMode;
+    this.verbose = verbose;
   }
 
-  static async generate(client: Axios) {
-    const discussionWorker = await spawn<controller<backgroundController>>(
-        new Worker('./Discussions/discussionsWorker', {
-          workerData,
-        }),
-      ),
-      mangaWorker = await spawn<controller<backgroundController>>(
-        new Worker('./Manga/mangaWorker', {
-          workerData,
-        }),
-      );
-
-    return new backgroundController(client, discussionWorker, mangaWorker);
-  }
+  async spawnWorkers() {
+    this.discussionWorker = await threadedClass<
+    discussionController,
+    typeof discussionController
+  >('./Discussions/discussionsWorker', 'discussionController', [
+    this.client,
+    10000,
+  ]);
+    this.mangaWorker = await threadedClass<
+    mangaController,
+    typeof mangaController
+  >('./Manga/mangaWorker', 'mangaController', [
+    this.client,
+    this.safeMode,this.verbose,
+  ]);}
 
   connect(options: SequelizeOptions) {
     return new Promise<backgroundController>((resolve, reject) => {
@@ -58,10 +63,10 @@ export class backgroundController implements controller<backgroundController> {
   }
 
   start() {
-    this.running = true;
-
     this.discussionWorker.start();
     this.mangaWorker.start();
+
+    this.running = true;
   }
 
   stop() {
@@ -72,10 +77,7 @@ export class backgroundController implements controller<backgroundController> {
   }
 }
 
-backgroundController
-  .generate(ClientController.parseClient(workerData.client))
-  .then((worker) => worker.connect(defaultSqliteSettings))
-  .then((worker) =>
-    expose({ start: worker.start, stop: worker.stop, connect: worker.connect }),
-  );
+// backgroundController
+//   .generate()
+//   .then((worker) => worker.connect(defaultSqliteSettings));
 

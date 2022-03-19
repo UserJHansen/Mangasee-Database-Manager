@@ -1,9 +1,8 @@
 import 'dotenv/config';
+import { threadedClass } from 'threadedclass';
 
-import { spawn, Worker } from 'threads';
 import clientController, { ENV } from './utils/ClientController';
 import { backgroundController } from './workerTree/backgroundWorkerController';
-import { controller, workerENV } from './workerTree/workerTypes';
 
 async function main() {
   const safemode = process.env.SAFE?.toLocaleLowerCase() !== 'false',
@@ -24,17 +23,17 @@ async function main() {
   );
 
   if (success) {
-    const worker = await spawn<controller<backgroundController>>(
-      new Worker('./workerTree/backgroundWorkerController', {
-        workerData: {
-          client: JSON.stringify(client.defaults.jar?.toJSON?.()),
-          safemode,
-          verbose,
-        } as workerENV,
-      }),
-    );
+    const worker = await threadedClass<
+      backgroundController,
+      typeof backgroundController
+    >('./workerTree/backgroundWorkerController', 'backgroundController', [
+      JSON.stringify(client.defaults.jar?.toJSON?.()),
+      safemode,
+      verbose,
+    ]);
 
-    worker.start();
+    await worker.spawnWorkers();
+    await worker.start();
     process.on('beforeExit', () => worker.stop());
   }
 }
