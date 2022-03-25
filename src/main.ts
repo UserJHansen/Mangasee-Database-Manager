@@ -26,13 +26,16 @@ async function main() {
     const worker = await threadedClass<
       backgroundController,
       typeof backgroundController
-    >('./workerTree/backgroundWorkerController', 'backgroundController', [
-      JSON.stringify(client.defaults.jar?.toJSON?.()),
-      safemode,
-      verbose,
-    ]);
+    >(
+      './workerTree/backgroundWorkerController',
+      'backgroundController',
+      [JSON.stringify(client.defaults.jar?.toJSON?.()), safemode, verbose],
+      { freezeLimit: 1000000 },
+    );
 
+    console.log('Spawning Workers.');
     await worker.spawnWorkers();
+    console.log('Workers spawned.');
     await worker.start();
     process.on('beforeExit', () => worker.stop());
   }

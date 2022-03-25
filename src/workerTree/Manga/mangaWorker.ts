@@ -1,6 +1,6 @@
 import { Axios } from 'axios';
-import EventEmitter from 'events';
-import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
+import { Sequelize } from 'sequelize-typescript';
+import { defaultSqliteSettings } from '../../utils/defaultSettings';
 import { RawMangaT, RawBookmarkT } from '../../utils/types';
 
 export type runInWorker = (
@@ -11,7 +11,7 @@ export type runInWorker = (
   bookmarked: RawBookmarkT[],
 ) => Promise<void>;
 
-export class mangaController extends EventEmitter {
+export class mangaController {
   running = false;
   safeMode = true;
   verbose = false;
@@ -20,24 +20,19 @@ export class mangaController extends EventEmitter {
   client: Axios;
 
   constructor(client: Axios, safeMode: boolean, verbose: boolean) {
-    super();
+    // super();
 
     this.client = client;
     this.safeMode = safeMode;
     this.verbose = verbose;
   }
 
-  connect(options: SequelizeOptions) {
+  async connect() {
     console.log('[MANGA] Connecting to database...');
-    return new Promise<mangaController>((resolve, reject) => {
-      this.database = new Sequelize(options);
 
-      try {
-        this.database.authenticate().then(() => resolve(this));
-      } catch (error) {
-        reject(error);
-      }
-    });
+    this.database = new Sequelize(defaultSqliteSettings);
+
+    await this.database.authenticate();
   }
 
   start() {

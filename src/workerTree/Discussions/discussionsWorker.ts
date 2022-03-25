@@ -3,15 +3,14 @@ import { RawDiscussionT, RawPostT } from '../../utils/types';
 import User from '../../Models/Users/User.model';
 import DiscussionModel from '../../Models/Discussions/Discussion.model';
 import DiscussionReply from '../../Models/Discussions/Replies/Reply.model';
-import ClientController from '../../utils/ClientController';
 import { workerData } from 'worker_threads';
-import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
+import { Sequelize } from 'sequelize-typescript';
 import { Axios } from 'axios';
-import EventEmitter from 'events';
+import ClientController from '../../utils/ClientController';
+import { CookieJar } from 'tough-cookie';
+import { defaultSqliteSettings } from '../../utils/defaultSettings';
 
-const client = ClientController.parseClient(workerData.client);
-
-export class discussionController extends EventEmitter {
+export class discussionController {
   running = false;
   interval = 0;
   timer: NodeJS.Timer;
@@ -19,24 +18,18 @@ export class discussionController extends EventEmitter {
   database: Sequelize;
   client: Axios;
 
-  constructor(client: Axios, interval: number) {
-    super();
+  constructor(client: string | CookieJar.Serialized, interval: number) {
+    // super();
 
-    this.client = client;
+    this.client = ClientController.parseClient(client);
     this.interval = interval;
   }
 
-  connect(options: SequelizeOptions) {
+  async connect() {
     console.log('[DISCUSSIONS] Connecting to database...');
-    return new Promise<discussionController>((resolve, reject) => {
-      this.database = new Sequelize(options);
+    this.database = new Sequelize(defaultSqliteSettings);
 
-      try {
-        this.database.authenticate().then(() => resolve(this));
-      } catch (error) {
-        reject(error);
-      }
-    });
+    await this.database.authenticate();
   }
 
   start() {
@@ -45,7 +38,7 @@ export class discussionController extends EventEmitter {
     );
     if (this.running) return;
 
-    this.timer = setInterval(this.takeCapture, this.interval);
+    this.timer = setInterval(() => this.takeCapture(), this.interval);
 
     this.running = true;
   }
@@ -63,14 +56,14 @@ export class discussionController extends EventEmitter {
   private async takeCapture() {
     console.log('[DISCUSSIONS] Taking capture...');
 
-    const rawData = (await client.get('/discussion/index.get.php')).data
+    const rawData = (await this.client.get('/discussion/index.get.php')).data
         .val as RawDiscussionT[],
       users = new Map<string, number>(),
       quietCreate = workerData.quietCreate;
 
     for (const data of rawData) {
       const post = (
-        await client.post('/discussion/post.get.php', {
+        await this.client.post('/discussion/post.get.php', {
           id: parseInt(data.PostID),
         })
       ).data.val as RawPostT;

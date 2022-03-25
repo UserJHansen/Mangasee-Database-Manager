@@ -7,9 +7,9 @@ import { ThreadedClass, threadedClass } from 'threadedclass';
 import { discussionController } from './Discussions/discussionsWorker';
 import { mangaController } from './Manga/mangaWorker';
 import ClientController from '../utils/ClientController';
-import EventEmitter from 'events';
+import { defaultSqliteSettings } from '../utils/defaultSettings';
 
-export class backgroundController extends EventEmitter {
+export class backgroundController {
   running = false;
   safeMode = true;
   verbose = false;
@@ -19,12 +19,8 @@ export class backgroundController extends EventEmitter {
   discussionWorker: ThreadedClass<discussionController>;
   mangaWorker: ThreadedClass<mangaController>;
 
-  constructor(
-    client: string,
-    safeMode: boolean,
-    verbose: boolean,
-  ) {
-    super()
+  constructor(client: string, safeMode: boolean, verbose: boolean) {
+    // super();
 
     this.client = ClientController.parseClient(client);
     this.safeMode = safeMode;
@@ -32,20 +28,27 @@ export class backgroundController extends EventEmitter {
   }
 
   async spawnWorkers() {
-    this.discussionWorker = await threadedClass<
-    discussionController,
-    typeof discussionController
-  >('./Discussions/discussionsWorker', 'discussionController', [
-    this.client,
-    10000,
-  ]);
+    this.discussionWorker = await await threadedClass<
+      discussionController,
+      typeof discussionController
+    >(
+      './Discussions/discussionsWorker',
+      'discussionController',
+      [this.client.defaults.jar?.toJSON?.() || '', 300000],
+      { freezeLimit: 1000000 },
+    );
+    await this.discussionWorker.connect();
     this.mangaWorker = await threadedClass<
-    mangaController,
-    typeof mangaController
-  >('./Manga/mangaWorker', 'mangaController', [
-    this.client,
-    this.safeMode,this.verbose,
-  ]);}
+      mangaController,
+      typeof mangaController
+    >(
+      './Manga/mangaWorker',
+      'mangaController',
+      [this.client, this.safeMode, this.verbose],
+      { freezeLimit: 1000000 },
+    );
+    await this.mangaWorker.connect();
+  }
 
   connect(options: SequelizeOptions) {
     return new Promise<backgroundController>((resolve, reject) => {
