@@ -1,7 +1,6 @@
 import {
   BelongsTo,
   Column,
-  CreatedAt,
   ForeignKey,
   Model,
   PrimaryKey,
@@ -23,6 +22,31 @@ export type Reply = {
 
 @Table
 export default class DiscussionReply extends Model<Reply> implements Reply {
+  @Unique
+  @PrimaryKey
+  @Column
+  id!: number;
+
+  @Column
+  @ForeignKey(() => User)
+  userID!: number;
+
+  @BelongsTo(() => User)
+  user!: User;
+
+  @Column
+  content!: string;
+
+  @Column
+  timestamp!: Date;
+
+  @Column
+  @ForeignKey(() => Comment)
+  commentID!: number;
+
+  @BelongsTo(() => Comment)
+  parent!: Comment;
+
   static async updateWithLog(newReply: Reply, verbose = false) {
     const reply = await DiscussionReply.findByPk(newReply.id);
     if (reply === null) {
@@ -49,30 +73,4 @@ export default class DiscussionReply extends Model<Reply> implements Reply {
       }
     }
   }
-
-  @Unique
-  @PrimaryKey
-  @Column
-  id!: number;
-
-  @Column
-  @ForeignKey(() => User)
-  userID!: number;
-
-  @BelongsTo(() => User)
-  user!: User;
-
-  @Column
-  content!: string;
-
-  @CreatedAt
-  @Column
-  timestamp!: Date;
-
-  @Column
-  @ForeignKey(() => Comment)
-  commentID!: number;
-
-  @BelongsTo(() => Comment)
-  parent!: Comment;
 }

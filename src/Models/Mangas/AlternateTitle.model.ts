@@ -29,4 +29,16 @@ export default class AlternateTitleModel
   @ForeignKey(() => MangaModel)
   @Column
   manga!: string;
+
+  static async updateWithLog(newAltTitle: AltTitle, verbose = false) {
+    const altTitle = await AlternateTitleModel.findOne({
+      where: newAltTitle,
+    });
+    if (altTitle === null) {
+      await AlternateTitleModel.create(newAltTitle);
+      if (verbose) {
+        console.log(`${newAltTitle.title} added`);
+      }
+    }
+  }
 }

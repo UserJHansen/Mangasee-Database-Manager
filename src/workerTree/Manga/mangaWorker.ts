@@ -1,7 +1,7 @@
 import { Axios } from 'axios';
 import { Sequelize } from 'sequelize-typescript';
 import { defaultSqliteSettings } from '../../utils/defaultSettings';
-import { RawMangaT, RawBookmarkT } from '../../utils/types';
+import { RawMangaT, RawBookmarkT, MangaSplitT } from '../../utils/types';
 
 export type runInWorker = (
   manga: RawMangaT,
@@ -19,12 +19,19 @@ export class mangaController {
   database: Sequelize;
   client: Axios;
 
-  constructor(client: Axios, safeMode: boolean, verbose: boolean) {
-    // super();
-
+  constructor(
+    client: Axios,
+    split: MangaSplitT,
+    safeMode: boolean,
+    verbose: boolean,
+  ) {
     this.client = client;
     this.safeMode = safeMode;
     this.verbose = verbose;
+
+    if (split.reduce((a, b) => a + b, 0) !== 1) {
+      throw new Error('Manga split must add up to 1.');
+    }
   }
 
   async connect() {

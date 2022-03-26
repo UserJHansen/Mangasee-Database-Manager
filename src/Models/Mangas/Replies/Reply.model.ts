@@ -1,13 +1,13 @@
 import {
   BelongsTo,
   Column,
-  CreatedAt,
   ForeignKey,
   Model,
   PrimaryKey,
   Table,
   Unique,
 } from 'sequelize-typescript';
+import LoggingModel from '../../Logging/Log.model';
 
 import User from '../../Users/User.model';
 import Comment from '../Comments/Comment.model';
@@ -37,7 +37,6 @@ export default class MangaReply extends Model<Reply> implements Reply {
   @Column
   content!: string;
 
-  @CreatedAt
   @Column
   timestamp!: Date;
 
@@ -47,4 +46,31 @@ export default class MangaReply extends Model<Reply> implements Reply {
 
   @BelongsTo(() => Comment)
   parent!: Comment;
+
+  static async updateWithLog(newReply: Reply, verbose = false) {
+    const reply = await MangaReply.findByPk(newReply.id);
+    if (reply === null) {
+      if (verbose)
+        await LoggingModel.create({
+          type: 'New Reply',
+          value: newReply.content,
+          targetID: newReply.id.toString(),
+        });
+      await MangaReply.create(newReply);
+    } else {
+      if (
+        newReply.commentID !== reply.commentID ||
+        newReply.userID !== reply.userID ||
+        newReply.timestamp.toLocaleString() !==
+          reply.timestamp.toLocaleString() ||
+        newReply.content !== reply.content
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: 'Reply Changed',
+          targetID: newReply.id.toString(),
+        });
+      }
+    }
+  }
 }

@@ -1,12 +1,13 @@
 import 'dotenv/config';
 
 import { Axios } from 'axios';
-import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
+import { Sequelize } from 'sequelize-typescript';
 
 import { ThreadedClass, threadedClass } from 'threadedclass';
 import { discussionController } from './Discussions/discussionsWorker';
 import { mangaController } from './Manga/mangaWorker';
 import ClientController from '../utils/ClientController';
+import { MangaSplitT } from '../utils/types';
 import { defaultSqliteSettings } from '../utils/defaultSettings';
 
 export class backgroundController {
@@ -14,20 +15,17 @@ export class backgroundController {
   safeMode = true;
   verbose = false;
 
-  database: Sequelize;
   client: Axios;
   discussionWorker: ThreadedClass<discussionController>;
   mangaWorker: ThreadedClass<mangaController>;
 
   constructor(client: string, safeMode: boolean, verbose: boolean) {
-    // super();
-
     this.client = ClientController.parseClient(client);
     this.safeMode = safeMode;
     this.verbose = verbose;
   }
 
-  async spawnWorkers() {
+  async spawnWorkers(mangaSplit: MangaSplitT) {
     this.discussionWorker = await await threadedClass<
       discussionController,
       typeof discussionController
@@ -44,25 +42,19 @@ export class backgroundController {
     >(
       './Manga/mangaWorker',
       'mangaController',
-      [this.client, this.safeMode, this.verbose],
+      [this.client, mangaSplit, this.safeMode, this.verbose],
       { freezeLimit: 1000000 },
     );
     await this.mangaWorker.connect();
   }
 
-  connect(options: SequelizeOptions) {
-    return new Promise<backgroundController>((resolve, reject) => {
-      this.database = new Sequelize(options);
+  async connect() {
+    const database = new Sequelize(defaultSqliteSettings);
 
-      try {
-        this.database
-          .authenticate()
-          .then(() => this.database.sync())
-          .then(() => resolve(this));
-      } catch (error) {
-        reject(error);
-      }
-    });
+    await database.authenticate();
+    await database.sync();
+
+    await database.close();
   }
 
   start() {
@@ -73,14 +65,9 @@ export class backgroundController {
   }
 
   stop() {
-    this.running = false;
-
     this.discussionWorker.stop();
     this.mangaWorker.stop();
+
+    this.running = false;
   }
 }
-
-// backgroundController
-//   .generate()
-//   .then((worker) => worker.connect(defaultSqliteSettings));
-

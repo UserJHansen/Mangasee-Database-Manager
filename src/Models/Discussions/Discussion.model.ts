@@ -3,7 +3,6 @@ import {
   Column,
   Unique,
   PrimaryKey,
-  CreatedAt,
   ForeignKey,
   BelongsTo,
   HasMany,
@@ -51,7 +50,6 @@ export default class DiscussionModel
   @Column
   type!: '' | 'Request' | 'Question' | 'Announcement';
 
-  @CreatedAt
   @Column
   timestamp!: Date;
 

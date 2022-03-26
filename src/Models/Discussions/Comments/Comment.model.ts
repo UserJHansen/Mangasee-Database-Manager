@@ -1,7 +1,6 @@
 import {
   BelongsTo,
   Column,
-  CreatedAt,
   ForeignKey,
   HasMany,
   Model,
@@ -34,6 +33,40 @@ export default class DiscussionComment
   extends Model<Comment>
   implements Comment
 {
+  @Unique
+  @PrimaryKey
+  @Column
+  id!: number;
+
+  @Column
+  @ForeignKey(() => User)
+  userID!: number;
+
+  @BelongsTo(() => User)
+  user!: User;
+
+  @Column
+  content!: string;
+
+  @Column
+  likes!: number;
+
+  @Column
+  hasLiked!: boolean;
+
+  @Column
+  timestamp!: Date;
+
+  @Column
+  @ForeignKey(() => Discussion)
+  discussionID!: number;
+
+  @BelongsTo(() => Discussion)
+  parent!: Discussion;
+
+  @HasMany(() => Reply)
+  replys!: Reply[];
+
   static async updateWithLog(newComment: CommentTree, verbose = false) {
     const comment = await DiscussionComment.findByPk(newComment.id);
     if (comment === null) {
@@ -89,39 +122,4 @@ export default class DiscussionComment
       await Reply.updateWithLog(reply, verbose);
     }
   }
-
-  @Unique
-  @PrimaryKey
-  @Column
-  id!: number;
-
-  @Column
-  @ForeignKey(() => User)
-  userID!: number;
-
-  @BelongsTo(() => User)
-  user!: User;
-
-  @Column
-  content!: string;
-
-  @Column
-  likes!: number;
-
-  @Column
-  hasLiked!: boolean;
-
-  @CreatedAt
-  @Column
-  timestamp!: Date;
-
-  @Column
-  @ForeignKey(() => Discussion)
-  discussionID!: number;
-
-  @BelongsTo(() => Discussion)
-  parent!: Discussion;
-
-  @HasMany(() => Reply)
-  replys!: Reply[];
 }

@@ -56,7 +56,7 @@ export default async function fillManga(
         ].Chapter;
   if (FindVariable('vm.LastChapterRead', rawHTML) === '') return;
   let hasRead = lastChapterRead !== '' || !safemode;
-  const newmanga: Manga = {
+  const newManga: Manga = {
     title: data.i,
     fullTitle: data.s,
     hasRead,
@@ -70,96 +70,96 @@ export default async function fillManga(
     shouldNotify: FindVariable('vm.Notification', rawHTML) === 'true',
   };
 
-  const manga = await MangaModel.findByPk(data.i);
-  if (manga !== null) {
-    if (newmanga.hasRead && !manga.hasRead) {
+  const oldManga = await MangaModel.findByPk(data.i);
+  if (oldManga !== null) {
+    if (newManga.hasRead && !oldManga.hasRead) {
       await LoggingModel.create({
         type: 'Read Manga',
-        value: newmanga.title,
-        targetID: newmanga.title,
+        value: newManga.title,
+        targetID: newManga.title,
       });
       hasRead = true;
-      await manga.update({ hasRead });
+      await oldManga.update({ hasRead });
     }
 
-    if (manga.scanStatus !== newmanga.scanStatus) {
+    if (oldManga.scanStatus !== newManga.scanStatus) {
       await LoggingModel.create({
         type: 'Scan Status Changed',
-        value: newmanga.scanStatus,
-        previousValue: manga.scanStatus,
-        targetID: newmanga.title,
+        value: newManga.scanStatus,
+        previousValue: oldManga.scanStatus,
+        targetID: newManga.title,
       });
-      await manga.update({ scanStatus: newmanga.scanStatus });
+      await oldManga.update({ scanStatus: newManga.scanStatus });
     }
-    if (manga.publishStatus !== newmanga.publishStatus) {
+    if (oldManga.publishStatus !== newManga.publishStatus) {
       await LoggingModel.create({
         type: 'Publish Status Changed',
-        value: newmanga.publishStatus,
-        previousValue: manga.publishStatus,
-        targetID: newmanga.title,
+        value: newManga.publishStatus,
+        previousValue: oldManga.publishStatus,
+        targetID: newManga.title,
       });
-      await manga.update({ publishStatus: newmanga.publishStatus });
+      await oldManga.update({ publishStatus: newManga.publishStatus });
     }
 
-    if (manga.lastReadID !== newmanga.lastReadID) {
+    if (oldManga.lastReadID !== newManga.lastReadID) {
       await LoggingModel.create({
         type: 'Last Read Update',
-        value: newmanga.lastReadID.toString(),
-        previousValue: manga.lastReadID.toString(),
+        value: newManga.lastReadID.toString(),
+        previousValue: oldManga.lastReadID.toString(),
         targetID: data.i,
       });
-      await manga.update({ lastReadID: newmanga.lastReadID });
+      await oldManga.update({ lastReadID: newManga.lastReadID });
     }
 
-    if (manga.isSubscribed !== newmanga.isSubscribed) {
+    if (oldManga.isSubscribed !== newManga.isSubscribed) {
       await LoggingModel.create({
         type: 'Subscription Update',
-        value: newmanga.isSubscribed.toString(),
-        previousValue: manga.isSubscribed.toString(),
+        value: newManga.isSubscribed.toString(),
+        previousValue: oldManga.isSubscribed.toString(),
         targetID: data.i,
       });
-      await manga.update({ isSubscribed: newmanga.isSubscribed });
+      await oldManga.update({ isSubscribed: newManga.isSubscribed });
     }
 
-    if (manga.numSubscribed !== newmanga.numSubscribed) {
+    if (oldManga.numSubscribed !== newManga.numSubscribed) {
       await LoggingModel.create({
         type: 'Subscription Number Update',
-        value: newmanga.numSubscribed.toString(),
-        previousValue: manga.numSubscribed.toString(),
+        value: newManga.numSubscribed.toString(),
+        previousValue: oldManga.numSubscribed.toString(),
         targetID: data.i,
       });
-      await manga.update({ numSubscribed: newmanga.numSubscribed });
+      await oldManga.update({ numSubscribed: newManga.numSubscribed });
     }
 
-    if (manga.shouldNotify !== newmanga.shouldNotify) {
+    if (oldManga.shouldNotify !== newManga.shouldNotify) {
       await LoggingModel.create({
         type: 'Notification Pref Update',
-        value: newmanga.shouldNotify.toString(),
-        previousValue: manga.shouldNotify.toString(),
+        value: newManga.shouldNotify.toString(),
+        previousValue: oldManga.shouldNotify.toString(),
         targetID: data.i,
       });
-      await manga.update({ shouldNotify: newmanga.shouldNotify });
+      await oldManga.update({ shouldNotify: newManga.shouldNotify });
     }
 
     if (
-      manga.type !== newmanga.type ||
-      manga.releaseYear !== newmanga.releaseYear ||
-      manga.shouldNotify !== newmanga.shouldNotify
+      oldManga.type !== newManga.type ||
+      oldManga.releaseYear !== newManga.releaseYear ||
+      oldManga.shouldNotify !== newManga.shouldNotify
     ) {
       await LoggingModel.create({
         type: 'Unexpected Event',
-        value: JSON.stringify(newmanga),
-        previousValue: JSON.stringify(manga),
-        targetID: manga.title,
+        value: JSON.stringify(newManga),
+        previousValue: JSON.stringify(oldManga),
+        targetID: oldManga.title,
       });
     }
   } else {
-    await MangaModel.create(newmanga);
+    await MangaModel.create(newManga);
     if (!quietCreate) {
       await LoggingModel.create({
         type: 'New Manga',
-        value: JSON.stringify(newmanga),
-        targetID: newmanga.title,
+        value: JSON.stringify(newManga),
+        targetID: newManga.title,
       });
     }
   }
@@ -210,19 +210,19 @@ export default async function fillManga(
       alternate = await AlternateTitleModel.findByPk(alternateName);
 
     if (alternate !== null) {
-      if (alternate.manga !== newmanga.title) {
+      if (alternate.manga !== newManga.title) {
         await LoggingModel.create({
           type: 'Alternate Title Mismatch',
           value: alternateName,
           previousValue: alternate.manga,
           targetID: alternate.id.toString(),
         });
-        await alternate.update({ manga: newmanga.title });
+        await alternate.update({ manga: newManga.title });
       }
     } else {
       await AlternateTitleModel.create({
         title: alternateName,
-        manga: newmanga.title,
+        manga: newManga.title,
       });
       if (!quietCreate)
         await LoggingModel.create({

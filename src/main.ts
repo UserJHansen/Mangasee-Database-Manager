@@ -33,8 +33,10 @@ async function main() {
       { freezeLimit: 1000000 },
     );
 
+    await worker.connect();
+
     console.log('Spawning Workers.');
-    await worker.spawnWorkers();
+    await worker.spawnWorkers([0.125, 0.125, 0.25, 0.5]);
     console.log('Workers spawned.');
     await worker.start();
     process.on('beforeExit', () => worker.stop());

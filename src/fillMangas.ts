@@ -1,22 +1,5 @@
 // This is all obselete now with the new worker system, should be removed soon
 
-// import { AxiosInstance } from 'axios';
-
-// import { SingleBar } from 'cli-progress';
-// import { spawn, Pool, Worker, FunctionThread } from 'threads';
-// import { setTimeout } from 'timers/promises';
-
-// import MangaModel from './Models/Mangas/Manga.model';
-// import AuthorModel from './Models/Authors/Author.model';
-// import AuthorLink from './Models/Authors/AuthorLink.model';
-// import GenreModel from './Models/Genres/Genre.model';
-// import GenreLinkModel from './Models/Genres/GenreLink.model';
-// import LoggingModel from './Models/Logging/Log.model';
-
-// import { GenreT, RawBookmarkT, RawMangaT } from './utils/types';
-// import { QueuedTask } from 'threads/dist/master/pool-types';
-// import { runInWorker } from './workerTree/Manga/mangaWorker';
-
 // export default async function fillManga(
 //   client: AxiosInstance,
 //   safemode: boolean,

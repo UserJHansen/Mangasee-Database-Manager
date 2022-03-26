@@ -2,7 +2,6 @@ import {
   BeforeCreate,
   BeforeUpdate,
   Column,
-  CreatedAt,
   ForeignKey,
   HasMany,
   Model,
@@ -10,10 +9,11 @@ import {
   Table,
   Unique,
 } from 'sequelize-typescript';
-// import LoggingModel from '../Logging/Log.model';
+import LoggingModel from '../Logging/Log.model';
 import Manga from '../Mangas/Manga.model';
+import PageModel from '../Pages/Page.model';
 
-import Page from '../Pages/Page.model';
+import { Page } from '../Pages/Page.model';
 
 export type Chapter = {
   chapter: number;
@@ -24,89 +24,10 @@ export type Chapter = {
   isBookmarked: boolean;
   releaseDate: Date;
 };
+export type ChapterTree = Chapter & { pages: Page[] };
 
 @Table
 export default class ChapterModel extends Model<Chapter> implements Chapter {
-  // async updateWithLog(newchapter: Chapter, verbose = false) {
-  //   const chapter = await ChapterModel.findByPk(
-  //     newchapter.mangaName + '-' + newchapter.chapter,
-  //   );
-
-  //   if (chapter !== null) {
-  //     if (
-  //       parseInt(chap.Page || '0') !==
-  //       (await PageModel.count({
-  //         where: {
-  //           chapter: newchapter.mangaName + '-' + newchapter.chapter,
-  //           mangaName: newchapter.mangaName,
-  //         },
-  //       }))
-  //     ) {
-  //       await LoggingModel.create({
-  //         type: 'Page Count Update',
-  //         value: chap.Page || '0',
-  //         previousValue: (
-  //           await PageModel.count({
-  //             where: {
-  //               chapter: newchapter.mangaName + '-' + newchapter.chapter,
-  //               mangaName: newchapter.mangaName,
-  //             },
-  //           })
-  //         ).toString(),
-  //         targetID: `${data.i}-${newchapter.chapter}`,
-  //       });
-  //     }
-
-  //     if (
-  //       chapter.type !== newchapter.type ||
-  //       chapter.directory !== newchapter.directory ||
-  //       chapter.chapterName !== newchapter.chapterName ||
-  //       chapter.releaseDate.toLocaleString() !==
-  //         newchapter.releaseDate.toLocaleString()
-  //     ) {
-  //       await LoggingModel.create({
-  //         type: 'Unexpected Event',
-  //         value: JSON.stringify(newchapter),
-  //         previousValue: JSON.stringify(chapter),
-  //         targetID: newchapter.chapter.toString(),
-  //       });
-  //     }
-  //   } else {
-  //     await ChapterModel.create(newchapter);
-  //     if (!verbose)
-  //       await LoggingModel.create({
-  //         type: 'New Chapter',
-  //         value: JSON.stringify(newchapter),
-  //         targetID: data.i,
-  //       });
-
-  //     for (
-  //       let index =
-  //           (await PageModel.count({
-  //             where: {
-  //               chapter: newchapter.mangaName + '-' + newchapter.chapter,
-  //               mangaName: newchapter.mangaName,
-  //             },
-  //           })) + 1,
-  //         l = parseInt(chap.Page || '0');
-  //       index - 1 < l;
-  //       index++
-  //     ) {
-  //       await PageModel.create({
-  //         chapter: newchapter.mangaName + '-' + newchapter.chapter,
-  //         mangaName: newchapter.mangaName,
-  //         pageNum: index,
-  //         isBookmarked: bookmarked.some(
-  //           (bookmark) =>
-  //             bookmark.Page === index.toString() &&
-  //             bookmark.Chapter === chap.Chapter &&
-  //             bookmark.IndexName === data.i,
-  //         ),
-  //       });
-  //     }
-  //   }
-  // }
-
   @PrimaryKey
   @Unique
   @Column
@@ -137,10 +58,76 @@ export default class ChapterModel extends Model<Chapter> implements Chapter {
   @Column
   isBookmarked!: boolean;
 
-  @HasMany(() => Page)
+  @HasMany(() => PageModel)
   pages!: Page[];
 
-  @CreatedAt
   @Column
   releaseDate!: Date;
+
+  static async updateWithLog(newChapter: ChapterTree, verbose = false) {
+    const title = newChapter.mangaName,
+      oldChapter = await ChapterModel.findByPk(
+        newChapter.mangaName + '-' + newChapter.chapter,
+      );
+
+    if (oldChapter === null) {
+      await ChapterModel.create(newChapter);
+      if (verbose) {
+        await LoggingModel.create({
+          type: 'New Chapter',
+          value: JSON.stringify(newChapter),
+          targetID: title,
+        });
+        console.log('New Chapter: ' + title);
+      }
+    } else {
+      if (
+        (await PageModel.count({
+          where: {
+            chapter: newChapter.mangaName + '-' + newChapter.chapter,
+            mangaName: newChapter.mangaName,
+          },
+        })) !== newChapter.pages.length
+      ) {
+        await LoggingModel.create({
+          type: 'Page Count Update',
+          value: newChapter.pages.length.toString(),
+          previousValue: (
+            await PageModel.count({
+              where: {
+                chapter: newChapter.mangaName + '-' + newChapter.chapter,
+                mangaName: newChapter.mangaName,
+              },
+            })
+          ).toString(),
+          targetID: `${title}-${newChapter.chapter}`,
+        });
+      }
+
+      if (
+        oldChapter.type !== newChapter.type ||
+        oldChapter.directory !== newChapter.directory ||
+        oldChapter.chapterName !== newChapter.chapterName ||
+        oldChapter.releaseDate.toLocaleString() !==
+          newChapter.releaseDate.toLocaleString()
+      ) {
+        await LoggingModel.create({
+          type: 'Unexpected Event',
+          value: JSON.stringify(newChapter),
+          previousValue: JSON.stringify(oldChapter),
+          targetID: newChapter.chapter.toString(),
+        });
+        await oldChapter.update({
+          type: newChapter.type,
+          directory: newChapter.directory,
+          chapterName: newChapter.chapterName,
+          releaseDate: newChapter.releaseDate,
+        });
+      }
+    }
+
+    for (const page of newChapter.pages) {
+      await PageModel.updateWithLog(page, verbose);
+    }
+  }
 }

@@ -19,8 +19,6 @@ export class discussionController {
   client: Axios;
 
   constructor(client: string | CookieJar.Serialized, interval: number) {
-    // super();
-
     this.client = ClientController.parseClient(client);
     this.interval = interval;
   }
@@ -34,7 +32,9 @@ export class discussionController {
 
   start() {
     console.log(
-      `[DISCUSSIONS] Started taking discussions at ${this.interval}ms`,
+      `[DISCUSSIONS] Started taking discussions at ${
+        this.interval / 1000 / 60
+      }m intervals`,
     );
     if (this.running) return;
 
@@ -110,9 +110,3 @@ export class discussionController {
     }
   }
 }
-
-// new discussionController(ClientController.parseClient(workerData.client), 1000)
-//   .then((worker) => worker.connect(defaultSqliteSettings))
-//   .then((worker) =>
-//     expose({ start: worker.start, stop: worker.stop, connect: worker.connect }),
-//   );

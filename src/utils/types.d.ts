@@ -152,3 +152,10 @@ export type RawBookmarkT = {
   Date: string;
   DateStamp: number;
 };
+
+export type MangaSplitT = [
+  number, // Read Manga / Notify
+  number, // Subscribed
+  number, // Genre Similar
+  number, // Random Progression
+];
