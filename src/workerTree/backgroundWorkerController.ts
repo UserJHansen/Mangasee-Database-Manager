@@ -32,7 +32,7 @@ export class backgroundController {
     >(
       './Discussions/discussionsWorker',
       'discussionController',
-      [this.client.defaults.jar?.toJSON?.() || '', 300000],
+      [this.client.defaults.jar?.toJSON?.() || '', this.verbose, 300000],
       { freezeLimit: 1000000 },
     );
     await this.discussionWorker.connect();

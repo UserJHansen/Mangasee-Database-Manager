@@ -17,6 +17,20 @@ export type User = {
 };
 @Table
 export default class UserModel extends Model<User> implements User {
+  @Unique
+  @PrimaryKey
+  @Column
+  id!: number;
+
+  @Column
+  username!: string;
+
+  @HasMany(() => Discussion)
+  discussions!: Discussion[];
+
+  @HasMany(() => DiscussionComment)
+  discussionComments!: DiscussionComment[];
+
   static async checkUser(userDetails: User) {
     const { id, username } = userDetails;
     const user = await UserModel.findByPk(id);
@@ -38,19 +52,4 @@ export default class UserModel extends Model<User> implements User {
       }
     }
   }
-
-  @PrimaryKey
-  @Unique
-  @PrimaryKey
-  @Column
-  id!: number;
-
-  @Column
-  username!: string;
-
-  @HasMany(() => Discussion)
-  discussions!: Discussion[];
-
-  @HasMany(() => DiscussionComment)
-  discussionComments!: DiscussionComment[];
 }

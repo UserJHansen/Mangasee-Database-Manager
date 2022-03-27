@@ -3,7 +3,6 @@ import { RawDiscussionT, RawPostT } from '../../utils/types';
 import User from '../../Models/Users/User.model';
 import DiscussionModel from '../../Models/Discussions/Discussion.model';
 import DiscussionReply from '../../Models/Discussions/Replies/Reply.model';
-import { workerData } from 'worker_threads';
 import { Sequelize } from 'sequelize-typescript';
 import { Axios } from 'axios';
 import ClientController from '../../utils/ClientController';
@@ -17,10 +16,16 @@ export class discussionController {
 
   database: Sequelize;
   client: Axios;
+  verbose: boolean;
 
-  constructor(client: string | CookieJar.Serialized, interval: number) {
+  constructor(
+    client: string | CookieJar.Serialized,
+    verbose: boolean,
+    interval: number,
+  ) {
     this.client = ClientController.parseClient(client);
     this.interval = interval;
+    this.verbose = verbose;
   }
 
   async connect() {
@@ -38,7 +43,8 @@ export class discussionController {
     );
     if (this.running) return;
 
-    this.timer = setInterval(() => this.takeCapture(), this.interval);
+    this.takeCapture.apply(this);
+    this.timer = setInterval(() => this.takeCapture.apply(this), this.interval);
 
     this.running = true;
   }
@@ -53,60 +59,66 @@ export class discussionController {
     this.running = false;
   }
 
+  private async capturePost(data: RawDiscussionT) {
+    try {
+      const users = new Map<string, number>(),
+        post = (
+          await this.client.post('/discussion/post.get.php', {
+            id: parseInt(data.PostID),
+          })
+        ).data.val as RawPostT;
+
+      users.set(post.Username, parseInt(post.UserID));
+
+      const discussion = {
+        id: parseInt(data.PostID),
+        title: data.PostTitle,
+        type: data.PostType,
+        timestamp: new AdjustedDate(data.TimePosted),
+        userID: parseInt(post.UserID),
+        shouldNotify: post.Notification === '1',
+        comments: post.Comments.map((comment) => {
+          users.set(comment.Username, parseInt(comment.UserID));
+          return {
+            id: parseInt(comment.CommentID),
+            content: comment.CommentContent,
+            timestamp: new AdjustedDate(comment.TimeCommented),
+            userID: parseInt(comment.UserID),
+            likes: parseInt(comment.LikeCount),
+            hasLiked: comment.Liked,
+            discussionID: parseInt(data.PostID),
+            replies: comment.Replies.map((reply) => {
+              users.set(reply.Username, parseInt(reply.UserID));
+              return {
+                id: parseInt(reply.CommentID),
+                content: reply.CommentContent,
+                timestamp: new AdjustedDate(reply.TimeCommented),
+                userID: parseInt(reply.UserID),
+                commentID: parseInt(comment.CommentID),
+              } as DiscussionReply;
+            }),
+          };
+        }),
+      };
+
+      await DiscussionModel.updateWithLog(discussion, this.verbose);
+      for (const [key, value] of users) {
+        await User.checkUser({ username: key, id: value });
+      }
+    } catch (e) {
+      console.error(e);
+      this.capturePost(data);
+    }
+  }
+
   private async takeCapture() {
     console.log('[DISCUSSIONS] Taking capture...');
 
     const rawData = (await this.client.get('/discussion/index.get.php')).data
-        .val as RawDiscussionT[],
-      users = new Map<string, number>(),
-      quietCreate = workerData.quietCreate;
+      .val as RawDiscussionT[];
 
     for (const data of rawData) {
-      const post = (
-        await this.client.post('/discussion/post.get.php', {
-          id: parseInt(data.PostID),
-        })
-      ).data.val as RawPostT;
-
-      users.set(post.Username, parseInt(post.UserID));
-
-      await DiscussionModel.updateWithLog(
-        {
-          id: parseInt(data.PostID),
-          title: data.PostTitle,
-          type: data.PostType,
-          timestamp: new AdjustedDate(data.TimePosted),
-          userID: parseInt(post.UserID),
-          shouldNotify: post.Notification === '1',
-          comments: post.Comments.map((comment) => {
-            users.set(comment.Username, parseInt(comment.UserID));
-            return {
-              id: parseInt(comment.CommentID),
-              content: comment.CommentContent,
-              timestamp: new AdjustedDate(comment.TimeCommented),
-              userID: parseInt(comment.UserID),
-              likes: parseInt(comment.LikeCount),
-              hasLiked: comment.Liked,
-              discussionID: parseInt(post.PostID),
-              replies: comment.Replies.map((reply) => {
-                users.set(reply.Username, parseInt(reply.UserID));
-                return {
-                  id: parseInt(reply.CommentID),
-                  content: reply.CommentContent,
-                  timestamp: new AdjustedDate(reply.TimeCommented),
-                  userID: parseInt(reply.UserID),
-                  commentID: parseInt(comment.CommentID),
-                } as DiscussionReply;
-              }),
-            };
-          }),
-        },
-        !quietCreate,
-      );
-    }
-
-    for (const [key, value] of users) {
-      await User.checkUser({ username: key, id: value });
+      await this.capturePost(data);
     }
   }
 }
