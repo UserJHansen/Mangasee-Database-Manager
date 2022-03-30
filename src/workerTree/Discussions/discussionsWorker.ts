@@ -43,8 +43,8 @@ export class discussionController {
     );
     if (this.running) return;
 
-    this.takeCapture.apply(this);
-    this.timer = setInterval(() => this.takeCapture.apply(this), this.interval);
+    this.takeCapture();
+    this.timer = setInterval(() => this.takeCapture(), this.interval);
 
     this.running = true;
   }
@@ -101,10 +101,10 @@ export class discussionController {
         }),
       };
 
-      await DiscussionModel.updateWithLog(discussion, this.verbose);
       for (const [key, value] of users) {
         await User.checkUser({ username: key, id: value });
       }
+      await DiscussionModel.updateWithLog(discussion, this.verbose);
     } catch (e) {
       console.error(e);
       this.capturePost(data);
@@ -114,11 +114,18 @@ export class discussionController {
   private async takeCapture() {
     console.log('[DISCUSSIONS] Taking capture...');
 
-    const rawData = (await this.client.get('/discussion/index.get.php')).data
-      .val as RawDiscussionT[];
+    try {
+      const rawData = (await this.client.get('/discussion/index.get.php')).data
+        .val as RawDiscussionT[];
 
-    for (const data of rawData) {
-      await this.capturePost(data);
+      for (const data of rawData) {
+        await this.capturePost(data);
+      }
+    } catch (e) {
+      console.error(e);
+      await this.takeCapture();
     }
+
+    console.log('[DISCUSSIONS] Capture complete!');
   }
 }

@@ -9,7 +9,6 @@ import {
   Model,
 } from 'sequelize-typescript';
 import LoggingModel from '../Logging/Log.model';
-import UserModel from '../Users/User.model';
 
 import User from '../Users/User.model';
 import CommentModel from './Comments/Comment.model';
@@ -69,7 +68,6 @@ export default class DiscussionModel
           value: newDiscussion.title,
           targetID: newDiscussion.id.toString(),
         });
-      await UserModel.checkUser({ username: '', id: newDiscussion.userID });
       await DiscussionModel.create(newDiscussion);
     } else {
       if (newDiscussion.shouldNotify !== Discussion.shouldNotify) {

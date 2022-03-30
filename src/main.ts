@@ -35,11 +35,11 @@ async function main() {
 
     await worker.connect();
 
-    console.log('Spawning Workers.');
+    console.log('[MAIN] Spawning Workers.');
     await worker.spawnWorkers([0.125, 0.125, 0.25, 0.5]);
-    console.log('Workers spawned.');
+    console.log('[MAIN] Workers spawned.');
     await worker.start();
-    process.on('beforeExit', () => worker.stop());
+    process.on('beforeExit', async () => await worker.stop());
   }
 }
 

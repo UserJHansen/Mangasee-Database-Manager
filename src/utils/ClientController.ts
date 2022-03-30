@@ -25,7 +25,7 @@ export default class ClientController {
     }
 
     console.log(
-      `Login ${loginRes.data.success ? 'succeeded' : 'failed'}${
+      `[MAIN] Login ${loginRes.data.success ? 'succeeded' : 'failed'}${
         !loginRes.data.success ? ` with message: ${loginRes.data.val}` : ''
       }`,
     );
