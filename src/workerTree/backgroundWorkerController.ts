@@ -1,30 +1,18 @@
 import 'dotenv/config';
 
-import { Axios } from 'axios';
 import { Sequelize } from 'sequelize-typescript';
 
 import { ThreadedClass, threadedClass } from 'threadedclass';
 import { discussionController } from './Discussions/discussionsWorker';
 import { mangaController } from './Manga/mangaWorker';
-import ClientController from '../utils/ClientController';
 import { MangaSplitT } from '../utils/types';
 import { defaultSqliteSettings } from '../utils/defaultSettings';
 import { CookieJar } from 'tough-cookie';
+import subWorker from './subWorker';
 
-export class backgroundController {
-  running = false;
-  safeMode = true;
-  verbose = false;
-
-  client: Axios;
+export class backgroundController extends subWorker {
   discussionWorker: ThreadedClass<discussionController>;
   mangaWorker: ThreadedClass<mangaController>;
-
-  constructor(client: string, safeMode: boolean, verbose: boolean) {
-    this.client = ClientController.parseClient(client);
-    this.safeMode = safeMode;
-    this.verbose = verbose;
-  }
 
   async spawnWorkers(mangaSplit: MangaSplitT) {
     this.discussionWorker = await threadedClass<
@@ -66,17 +54,17 @@ export class backgroundController {
     await database.close();
   }
 
-  start() {
+  async start() {
+    await super.start();
+
     this.discussionWorker.start();
     this.mangaWorker.start();
-
-    this.running = true;
   }
 
-  stop() {
+  async stop() {
+    await super.stop();
+
     this.discussionWorker.stop();
     this.mangaWorker.stop();
-
-    this.running = false;
   }
 }

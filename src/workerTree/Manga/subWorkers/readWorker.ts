@@ -1,3 +1,3 @@
-import subWorker from './subWorker';
+import subWorker from '../../subWorker';
 
-export default class readWorker implements subWorker {}
+export class readWorker extends subWorker {}

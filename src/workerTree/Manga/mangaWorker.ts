@@ -4,9 +4,8 @@ import { RawMangaT, RawBookmarkT, MangaSplitT } from '../../utils/types';
 
 import { cpus } from 'os';
 import { threadedClass, ThreadedClass } from 'threadedclass';
-import subWorker from './subWorkers/subWorker';
+import subWorker from '../subWorker';
 import { CookieJar } from 'tough-cookie';
-import readWorker from './subWorkers/readWorker';
 
 export type runInWorker = (
   manga: RawMangaT,
@@ -23,26 +22,19 @@ enum WorkerType {
   Random,
 }
 
-export class mangaController {
-  running = false;
-  safeMode = true;
-  verbose = false;
-
+export class mangaController extends subWorker {
   database: Sequelize;
-  client: CookieJar.Serialized;
 
   split: MangaSplitT;
-  workerRefs: ThreadedClass<subWorker>[];
+  workerRefs: ThreadedClass<subWorker>[] = [];
 
   constructor(
-    client: CookieJar.Serialized,
+    jar: CookieJar.Serialized,
     split: MangaSplitT,
     safeMode: boolean,
     verbose: boolean,
   ) {
-    this.client = client;
-    this.safeMode = safeMode;
-    this.verbose = verbose;
+    super(jar, safeMode, verbose);
 
     if (split.reduce((a, b) => a + b, 0) !== 1) {
       throw new Error('Manga split must add up to 1.');
@@ -58,50 +50,56 @@ export class mangaController {
     await this.database.authenticate();
   }
 
-  start() {
-    if (this.running) return;
-
-    this.running = true;
+  async start() {
+    super.start();
   }
 
-  stop() {
-    this.running = false;
-
-    if (!this.running) return;
-
-    this.running = false;
+  async stop() {
+    super.stop();
   }
 
   async startWorkers() {
-    const workers = this.split.map((part) => Math.ceil(part * cpus().length));
+    try {
+      const workers = this.split.map((part) => Math.ceil(part * cpus().length));
 
-    console.log(workers);
-    console.log('[MANGA] Starting workers...');
+      console.log('[MANGA] Starting workers...');
 
-    for (let number = 0; number < workers.length; number++) {
-      const type = workers[number];
-
-      for (let i = 0; i < number; i++) {
-        switch (type) {
-          case WorkerType.Read:
-            this.workerRefs.push(
-              await threadedClass<readWorker, typeof readWorker>(
-                './subWorkers/readWorker',
-                'readWorker',
-                [this.client, this.safeMode, this.verbose],
-                { freezeLimit: 1000000 },
-              ),
-            );
-
-            break;
-          case WorkerType.Subscribed:
-            break;
-          case WorkerType.GenreSimilar:
-            break;
-          case WorkerType.Random:
-            break;
+      for (let type = 0; type < workers.length; type++) {
+        const number = workers[type];
+        for (let i = 0; i < number; i++) {
+          let workerInfo = '';
+          switch (type) {
+            case WorkerType.Read:
+              workerInfo = 'readWorker';
+              break;
+            case WorkerType.Subscribed:
+              workerInfo = 'subscriptionWorker';
+              break;
+            case WorkerType.GenreSimilar:
+              workerInfo = 'genreWorker';
+              break;
+            case WorkerType.Random:
+              workerInfo = 'randomWorker';
+              break;
+          }
+          this.workerRefs.push(
+            await threadedClass<subWorker, typeof subWorker>(
+              './subWorkers/' + workerInfo,
+              workerInfo,
+              [
+                (this.client.defaults.jar as CookieJar).toJSON(),
+                this.safeMode,
+                this.verbose,
+              ],
+              { freezeLimit: 1000000 },
+            ),
+          );
         }
       }
+
+      console.log('[MANGA] Workers started.');
+    } catch (err) {
+      console.log(err);
     }
   }
 }

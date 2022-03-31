@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { threadedClass } from 'threadedclass';
+import { CookieJar } from 'tough-cookie';
 
 import clientController, { ENV } from './utils/ClientController';
 import { backgroundController } from './workerTree/backgroundWorkerController';
@@ -29,7 +30,7 @@ async function main() {
     >(
       './workerTree/backgroundWorkerController',
       'backgroundController',
-      [JSON.stringify(client.defaults.jar?.toJSON?.()), safemode, verbose],
+      [(client.defaults.jar as CookieJar).toJSON(), safemode, verbose],
       { freezeLimit: 1000000 },
     );
 

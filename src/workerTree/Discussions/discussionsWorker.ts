@@ -4,26 +4,21 @@ import User from '../../Models/Users/User.model';
 import DiscussionModel from '../../Models/Discussions/Discussion.model';
 import DiscussionReply from '../../Models/Discussions/Replies/Reply.model';
 import { Sequelize } from 'sequelize-typescript';
-import { Axios } from 'axios';
 import ClientController from '../../utils/ClientController';
 import { CookieJar } from 'tough-cookie';
 import { defaultSqliteSettings } from '../../utils/defaultSettings';
+import subWorker from '../subWorker';
 
-export class discussionController {
-  running = false;
+export class discussionController extends subWorker {
+  database: Sequelize;
+
   interval = 0;
   timer: NodeJS.Timer;
 
-  database: Sequelize;
-  client: Axios;
-  verbose: boolean;
+  constructor(jar: CookieJar.Serialized, verbose: boolean, interval: number) {
+    super(jar, true, verbose);
 
-  constructor(
-    client: CookieJar.Serialized,
-    verbose: boolean,
-    interval: number,
-  ) {
-    this.client = ClientController.parseClient(client);
+    this.client = ClientController.parseClient(jar);
     this.interval = interval;
     this.verbose = verbose;
   }
@@ -35,28 +30,23 @@ export class discussionController {
     await this.database.authenticate();
   }
 
-  start() {
+  async start() {
+    await super.start();
+
     console.log(
       `[DISCUSSIONS] Started taking discussions at ${
         this.interval / 1000 / 60
       }m intervals`,
     );
-    if (this.running) return;
 
     this.takeCapture();
     this.timer = setInterval(() => this.takeCapture(), this.interval);
-
-    this.running = true;
   }
 
-  stop() {
-    this.running = false;
-
-    if (!this.running) return;
+  async stop() {
+    await super.stop();
 
     clearInterval(this.timer);
-
-    this.running = false;
   }
 
   private async capturePost(data: RawDiscussionT) {
