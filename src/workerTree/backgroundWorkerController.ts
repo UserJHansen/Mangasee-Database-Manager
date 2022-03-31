@@ -9,6 +9,7 @@ import { mangaController } from './Manga/mangaWorker';
 import ClientController from '../utils/ClientController';
 import { MangaSplitT } from '../utils/types';
 import { defaultSqliteSettings } from '../utils/defaultSettings';
+import { CookieJar } from 'tough-cookie';
 
 export class backgroundController {
   running = false;
@@ -26,26 +27,34 @@ export class backgroundController {
   }
 
   async spawnWorkers(mangaSplit: MangaSplitT) {
-    this.discussionWorker = await await threadedClass<
+    this.discussionWorker = await threadedClass<
       discussionController,
       typeof discussionController
     >(
       './Discussions/discussionsWorker',
       'discussionController',
-      [this.client.defaults.jar?.toJSON?.() || '', this.verbose, 300000],
+      [(this.client.defaults.jar as CookieJar).toJSON(), this.verbose, 300000],
       { freezeLimit: 1000000 },
     );
     await this.discussionWorker.connect();
+
     this.mangaWorker = await threadedClass<
       mangaController,
       typeof mangaController
     >(
       './Manga/mangaWorker',
       'mangaController',
-      [this.client, mangaSplit, this.safeMode, this.verbose],
+      [
+        (this.client.defaults.jar as CookieJar).toJSON(),
+        mangaSplit,
+        this.safeMode,
+        this.verbose,
+      ],
       { freezeLimit: 1000000 },
     );
     await this.mangaWorker.connect();
+
+    await this.mangaWorker.startWorkers();
   }
 
   async connect() {

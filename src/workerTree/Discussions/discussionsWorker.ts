@@ -19,7 +19,7 @@ export class discussionController {
   verbose: boolean;
 
   constructor(
-    client: string | CookieJar.Serialized,
+    client: CookieJar.Serialized,
     verbose: boolean,
     interval: number,
   ) {
