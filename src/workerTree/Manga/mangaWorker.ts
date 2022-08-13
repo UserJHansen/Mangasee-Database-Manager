@@ -6,6 +6,7 @@ import { cpus } from 'os';
 import { threadedClass, ThreadedClass } from 'threadedclass';
 import subWorker from '../subWorker';
 import { CookieJar } from 'tough-cookie';
+import { randomWorker } from './subWorkers/randomWorker';
 
 export type runInWorker = (
   manga: RawMangaT,
@@ -64,6 +65,7 @@ export class mangaController extends subWorker {
 
       console.log('[MANGA] Starting workers...');
 
+      const buffer = new SharedArrayBuffer(20);
       for (let type = 0; type < workers.length; type++) {
         const number = workers[type];
         for (let i = 0; i < number; i++) {
@@ -79,24 +81,40 @@ export class mangaController extends subWorker {
               workerInfo = 'genreWorker';
               break;
             case WorkerType.Random:
-              workerInfo = 'randomWorker';
+              this.workerRefs.push(
+                await threadedClass<randomWorker, typeof randomWorker>(
+                  './subWorkers/randomWorker',
+                  'randomWorker',
+                  [
+                    (this.client.defaults.jar as CookieJar).toJSON(),
+                    this.safeMode,
+                    this.verbose,
+                    buffer,
+                  ],
+                  { freezeLimit: 1000000 },
+                ),
+              );
+              workerInfo = '';
               break;
           }
-          this.workerRefs.push(
-            await threadedClass<subWorker, typeof subWorker>(
-              './subWorkers/' + workerInfo,
-              workerInfo,
-              [
-                (this.client.defaults.jar as CookieJar).toJSON(),
-                this.safeMode,
-                this.verbose,
-              ],
-              { freezeLimit: 1000000 },
-            ),
-          );
+          if (workerInfo !== '') {
+            this.workerRefs.push(
+              await threadedClass<subWorker, typeof subWorker>(
+                './subWorkers/' + workerInfo,
+                workerInfo,
+                [
+                  (this.client.defaults.jar as CookieJar).toJSON(),
+                  this.safeMode,
+                  this.verbose,
+                ],
+                { freezeLimit: 1000000 },
+              ),
+            );
+          }
         }
       }
 
+      await Promise.all(this.workerRefs.map((worker) => worker.start()));
       console.log('[MANGA] Workers started.');
     } catch (err) {
       console.log(err);

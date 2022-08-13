@@ -12,9 +12,6 @@ import subWorker from '../subWorker';
 export class discussionController extends subWorker {
   database: Sequelize;
 
-  interval = 0;
-  timer: NodeJS.Timer;
-
   constructor(jar: CookieJar.Serialized, verbose: boolean, interval: number) {
     super(jar, true, verbose);
 
@@ -28,25 +25,6 @@ export class discussionController extends subWorker {
     this.database = new Sequelize(defaultSqliteSettings);
 
     await this.database.authenticate();
-  }
-
-  async start() {
-    await super.start();
-
-    console.log(
-      `[DISCUSSIONS] Started taking discussions at ${
-        this.interval / 1000 / 60
-      }m intervals`,
-    );
-
-    this.takeCapture();
-    this.timer = setInterval(() => this.takeCapture(), this.interval);
-  }
-
-  async stop() {
-    await super.stop();
-
-    clearInterval(this.timer);
   }
 
   private async capturePost(data: RawDiscussionT) {
@@ -101,7 +79,7 @@ export class discussionController extends subWorker {
     }
   }
 
-  private async takeCapture() {
+  async onInterval() {
     console.log('[DISCUSSIONS] Taking capture...');
 
     try {
@@ -113,7 +91,7 @@ export class discussionController extends subWorker {
       }
     } catch (e) {
       console.error(e);
-      await this.takeCapture();
+      await this.onInterval();
     }
 
     console.log('[DISCUSSIONS] Capture complete!');

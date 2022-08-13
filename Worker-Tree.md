@@ -1,8 +1,8 @@
-Background Worker Main/
-├─ Commands to Main Thread
-├─ Discussion Thread/
-│  ├─ Main thread - Reads commands and holds execution timer
-├─ Manga Thread/
+Background Worker Main/                                      ✔
+├─ Commands to Main Thread                                   ✔
+├─ Discussion Thread/                                        ✔
+│  ├─ Main thread - Reads commands and holds execution timer ✔
+├─ Manga Thread/                                             ✔
 │  ├─ Main Thread - Listener/Manager
 │  ├─ Worker Threads/
 │  │  ├─ Read Manga Worker / Notifications - 1/8
