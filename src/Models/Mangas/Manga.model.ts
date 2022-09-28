@@ -30,7 +30,6 @@ import ChapterModel from '../Chapters/Chapter.model';
 export type Manga = {
   title: string;
   fullTitle: string;
-  hasRead: boolean;
   type: MangaTypeT;
   releaseYear: number;
   scanStatus: MangaStatusT;
@@ -59,9 +58,6 @@ export default class MangaModel extends Model<Manga> implements Manga {
   @Unique
   @Column
   fullTitle!: string;
-
-  @Column
-  hasRead!: boolean;
 
   @HasMany(() => AlternateTitle)
   alternateTitles!: AlternateTitle[];
@@ -123,19 +119,6 @@ export default class MangaModel extends Model<Manga> implements Manga {
       }
       await MangaModel.create(newManga);
     } else {
-      if (!oldManga.hasRead && newManga.hasRead) {
-        if (verbose) {
-          console.log('New Manga: ' + title);
-
-          await LoggingModel.create({
-            type: 'New Manga',
-            value: JSON.stringify(newManga),
-            targetID: title,
-          });
-        }
-        oldManga.update({ hasRead: true });
-      }
-
       if (oldManga.lastReadID !== newManga.lastReadID) {
         await LoggingModel.create({
           type: 'Last Read Update',

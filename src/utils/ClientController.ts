@@ -16,7 +16,7 @@ export default class ClientController {
       data: { success: false, val: 'Connection Timed out' },
     };
     try {
-      loginRes = await client.post('https://mangasee123.com/auth/login.php', {
+      loginRes = await client.post('/auth/login.php', {
         EmailAddress: env.MANGASEE_USERNAME,
         Password: env.MANGASEE_PASSWORD,
       });

@@ -153,9 +153,19 @@ export type RawBookmarkT = {
   DateStamp: number;
 };
 
-export type MangaSplitT = [
-  number, // Read Manga / Notify
-  number, // Subscribed
-  number, // Genre Similar
-  number, // Random Progression
-];
+export type RawSubscriptionT = {
+  DateLatest: string;
+  DateStamp: number;
+  DateSubscribed: string;
+  EmailNotify: '1' | '0';
+  IndexName: string;
+  LatestChapter: {
+    Chapter: string;
+    Date: string;
+  };
+  PublishStatus: MangaStatusT;
+  ReadStatus: '1' | '2' | '3' | '4' | '5';
+  Removing: boolean;
+  SeriesID: string;
+  SeriesName: string;
+};
