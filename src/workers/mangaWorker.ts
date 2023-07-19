@@ -294,5 +294,7 @@ export class mangaController extends subWorker {
     }
   }
 
-  onInterval(): Promise<void> {}
+  onInterval(): Promise<void> {
+    console.error("Not implemented yet")
+  }
 }
