@@ -37,7 +37,7 @@
     "dotenv": "^14.2.0",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.29.0",
-    "sequelize-typescript": "^2.1.2",
+    "sequelize-typescript": "^2.1.6",
     "sqlite3": "npm:@vscode/sqlite3@^5.0.7",
     "threadedclass": "^1.0.1",
     "tough-cookie": "^4.1.3",
